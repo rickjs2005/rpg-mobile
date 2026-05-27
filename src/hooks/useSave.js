@@ -1,28 +1,35 @@
 /* ============================================================
-   useSave — versão React Native (async).
-   Diferença do web: AsyncStorage é Promise-based, então o boot
-   precisa esperar a leitura. Exposto como hook que retorna
-   { estado, carregando } pra o App mostrar splash enquanto lê.
+   useSave — múltiplos slots (async).
+   - useCarregarSlots(): carrega os N slots no boot; expõe recarregar().
+   - useAutoSave(state, slot): grava o estado no SLOT ATIVO a cada mudança.
    ============================================================ */
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
-  salvarLocal,
-  carregarLocal,
-  apagarLocal,
-  temSaveSalvo,
+  salvarSlot,
+  carregarSlot,
+  apagarSlot,
+  carregarTodosSlots,
+  NUM_SLOTS,
 } from "../logic/save.js";
 
-// Hook de boot: carrega save uma vez, retorna estado quando pronto.
-export function useCarregarSaveInicial() {
-  const [estado, setEstado] = useState(null);
+// Boot: carrega todos os slots; retorna { slots, carregando, recarregar }.
+export function useCarregarSlots() {
+  const [slots, setSlots] = useState(null);
   const [carregando, setCarregando] = useState(true);
+
+  const recarregar = useCallback(async () => {
+    const s = await carregarTodosSlots();
+    setSlots(s);
+    setCarregando(false);
+    return s;
+  }, []);
 
   useEffect(() => {
     let cancelado = false;
-    carregarLocal().then((e) => {
+    carregarTodosSlots().then((s) => {
       if (cancelado) return;
-      setEstado(e);
+      setSlots(s);
       setCarregando(false);
     });
     return () => {
@@ -30,24 +37,16 @@ export function useCarregarSaveInicial() {
     };
   }, []);
 
-  return { estado, carregando };
+  return { slots, carregando, recarregar };
 }
 
-// Auto-save: salva a cada mudança de state. Estado null = sem partida.
-export function useAutoSave(state) {
-  const apagouRef = useRef(false);
-
+// Auto-save: grava no slot ativo a cada mudança de estado. Sem estado ou
+// sem slot ativo (no menu), não faz nada. A exclusão é sempre explícita.
+export function useAutoSave(state, slot) {
   useEffect(() => {
-    if (state === null) {
-      if (apagouRef.current === false) {
-        apagarLocal();
-      }
-      apagouRef.current = true;
-      return;
-    }
-    apagouRef.current = false;
-    salvarLocal(state);
-  }, [state]);
+    if (state == null || slot == null) return;
+    salvarSlot(slot, state);
+  }, [state, slot]);
 }
 
-export { apagarLocal, temSaveSalvo };
+export { apagarSlot, carregarSlot, carregarTodosSlots, NUM_SLOTS };

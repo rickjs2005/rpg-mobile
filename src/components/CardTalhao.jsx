@@ -55,12 +55,14 @@ export default function CardTalhao({ talhao }) {
   const status = statusTalhao(talhao);
   const sanidadePct = Math.round(talhao.sanidade * 100);
   const emRecuperacao = estaEmRecuperacao(talhao);
+  const safraColhida = !!talhao.ciclo?.safraColhida;
   const podeColher =
     talhao.variedadeId &&
     talhao.idadeAnos >= ANOS_FORMACAO &&
     state.fase === "normal" &&
     estaEpocaColheita(state.tempo) &&
-    !emRecuperacao;
+    !emRecuperacao &&
+    !safraColhida;
   const ehVazio = !talhao.variedadeId;
   const podeEsq = podeSerEsqueletado(talhao);
   const podeRec = podeSerRecepado(talhao);
@@ -361,6 +363,17 @@ export default function CardTalhao({ talhao }) {
           !emRecuperacao && (
             <Text style={styles.aguarda}>
               ⏳ Aguardando época de colheita (mai–ago)
+            </Text>
+          )}
+
+        {!ehVazio &&
+          talhao.idadeAnos >= ANOS_FORMACAO &&
+          state.fase === "normal" &&
+          estaEpocaColheita(state.tempo) &&
+          !emRecuperacao &&
+          safraColhida && (
+            <Text style={styles.aguarda}>
+              ✅ Safra do ano já colhida — nova florada a partir de setembro.
             </Text>
           )}
 

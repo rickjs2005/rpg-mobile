@@ -9,6 +9,7 @@ import {
   tempoInicial,
   avancarUmDia,
   passoEmDias,
+  estaEpocaColheita,
 } from "../logic/tempo.js";
 import { sortearClimaDia, sortearMmDia } from "../logic/clima.js";
 import {
@@ -102,7 +103,7 @@ import {
 // Antes de NOVA_PARTIDA, o estado é null (mostra tela de início).
 export const ESTADO_VAZIO = null;
 
-export function novaPartida(modo) {
+export function novaPartida(modo, perfil) {
   const conf = modo === "terra_nua" ? INICIO_TERRA_NUA : INICIO_ROCINHA_PRONTA;
   const talhao = criarTalhao(conf.talhao);
   return {
@@ -111,6 +112,12 @@ export function novaPartida(modo) {
     tempo: tempoInicial(),
     caixa: conf.caixa,
     modoInicio: modo,
+    // Personalização da partida (tela de início). Defaults se vier vazio.
+    perfil: {
+      fazenda: (perfil?.fazenda || "").trim() || "Minha Fazenda",
+      produtor: (perfil?.produtor || "").trim() || "Produtor(a)",
+      regiao: (perfil?.regiao || "").trim() || "Zona da Mata, MG",
+    },
     talhoes: [talhao],
     equipamentos: [],
     inventario: { adubo: 0, calcario: 0, defensivo: 0 },
@@ -124,6 +131,7 @@ export function novaPartida(modo) {
     mercado: mercadoInicial(), // Lote H3: índice da bolsa
     emprestimo: null, // Lote H7: financiamento Funcafé
     tulha: "pequena", // Lote H4: capacidade de estoque
+    velocidade: 7, // dias por "Avançar" fora das fases diárias (config)
     cooperativa: { filiado: false }, // Lote H6: cooperativa
     eventos: [], // Lote G6: log estruturado { tempo, texto, categoria }
     // Lote G1: tutorial ativo na primeira partida
@@ -168,28 +176,43 @@ function verificarMarcos(state) {
   return novo;
 }
 
+// Núcleo do tracking: aplica um delta de caixa nos stats (receita/despesa
+// + porAno). delta > 0 = receita, delta < 0 = despesa. delta 0 = no-op.
+function aplicarDeltaStats(stats, ano, delta) {
+  if (!delta) return stats;
+  const base = stats || { receitaTotal: 0, despesaTotal: 0, sacasVendidasTotal: 0, vendasCount: 0, melhorLote: null, porAno: {} };
+  const porAno = { ...(base.porAno || {}) };
+  if (!porAno[ano]) porAno[ano] = { receita: 0, despesa: 0, sacas: 0 };
+  porAno[ano] = { ...porAno[ano] };
+  const novoStats = { ...base, porAno };
+  if (delta > 0) {
+    novoStats.receitaTotal = (base.receitaTotal || 0) + delta;
+    porAno[ano].receita += delta;
+  } else {
+    novoStats.despesaTotal = (base.despesaTotal || 0) + Math.abs(delta);
+    porAno[ano].despesa += Math.abs(delta);
+  }
+  return novoStats;
+}
+
+// Mexe no caixa E contabiliza nos stats no MESMO passo. Usado dentro do
+// AVANCAR, onde várias transações (folha, parcela, venda forçada) ocorrem
+// na mesma ação — diff antes/depois netaria tudo e perderia receita/despesa.
+function ajustarCaixa(state, delta) {
+  return {
+    ...state,
+    caixa: state.caixa + delta,
+    stats: aplicarDeltaStats(state.stats, state.tempo?.ano || 1, delta),
+  };
+}
+
 // Atualiza stats baseado no diff de caixa entre antes/depois (auto-track).
+// Usado pelas ações pontuais (compra/venda); o AVANCAR contabiliza por evento.
 function atualizarStatsCaixa(prev, curr) {
   if (!prev || !curr) return curr;
   const delta = (curr.caixa ?? 0) - (prev.caixa ?? 0);
   if (delta === 0) return curr;
-  const stats = curr.stats || { receitaTotal: 0, despesaTotal: 0, sacasVendidasTotal: 0, vendasCount: 0, melhorLote: null, porAno: {} };
-  const ano = curr.tempo?.ano || 1;
-  const porAno = { ...(stats.porAno || {}) };
-  if (!porAno[ano]) porAno[ano] = { receita: 0, despesa: 0, sacas: 0 };
-  porAno[ano] = { ...porAno[ano] };
-  const novoStats = {
-    ...stats,
-    porAno,
-  };
-  if (delta > 0) {
-    novoStats.receitaTotal = (stats.receitaTotal || 0) + delta;
-    porAno[ano].receita += delta;
-  } else {
-    novoStats.despesaTotal = (stats.despesaTotal || 0) + Math.abs(delta);
-    porAno[ano].despesa += Math.abs(delta);
-  }
-  return { ...curr, stats: novoStats };
+  return { ...curr, stats: aplicarDeltaStats(curr.stats, curr.tempo?.ano || 1, delta) };
 }
 
 // Avança tutorial se a condição do passo atual foi cumprida.
@@ -251,7 +274,7 @@ function gerarIdLote() {
 /* ---------- Ações ---------- */
 
 function acaoAvancar(state) {
-  const passo = passoEmDias(state.fase);
+  const passo = passoEmDias(state.fase, state.velocidade);
   const rng = createRng(state.rngState);
   let novo = state;
 
@@ -324,14 +347,14 @@ function acaoAvancar(state) {
       const custoAnual = custoAnualCertificacoes(novo.certificacoes);
       if (custoAnual > 0) {
         novo = comMensagem(
-          { ...novo, caixa: novo.caixa - custoAnual },
+          ajustarCaixa(novo, -custoAnual),
           `📋 Custo anual de auditoria das certificações: -R$${custoAnual.toLocaleString("pt-BR")}`
         );
       }
       // Lote H6: anuidade cooperativa
       if (novo.cooperativa?.filiado) {
         novo = comMensagem(
-          { ...novo, caixa: novo.caixa - COOPERATIVA.anuidade },
+          ajustarCaixa(novo, -COOPERATIVA.anuidade),
           `🏢 Anuidade ${COOPERATIVA.nome}: -R$${COOPERATIVA.anuidade.toLocaleString("pt-BR")}`
         );
       }
@@ -345,7 +368,7 @@ function acaoAvancar(state) {
       if (haIrrigados > 0) {
         const custoMensal = Math.round(haIrrigados * IRRIGACAO.custoMensalPorHectare);
         novo = comMensagem(
-          { ...novo, caixa: novo.caixa - custoMensal },
+          ajustarCaixa(novo, -custoMensal),
           `💧 Operação de irrigação (${haIrrigados.toFixed(1)}ha): -R$${custoMensal}`
         );
       }
@@ -354,7 +377,7 @@ function acaoAvancar(state) {
       const folha = folhaPagamentoMensal(novo.equipe);
       if (folha > 0) {
         novo = comMensagem(
-          { ...novo, caixa: novo.caixa - folha },
+          ajustarCaixa(novo, -folha),
           `👥 Folha de pagamento mensal: -R$${folha.toLocaleString("pt-BR")}`
         );
         const r = aplicarManutencaoMensal(novo);
@@ -368,7 +391,7 @@ function acaoAvancar(state) {
       if (novo.emprestimo) {
         const r = cobrarParcela(novo.emprestimo);
         novo = comMensagem(
-          { ...novo, caixa: novo.caixa - r.parcelaPaga, emprestimo: r.emprestimo },
+          { ...ajustarCaixa(novo, -r.parcelaPaga), emprestimo: r.emprestimo },
           r.quitado
             ? `🏦 Última parcela paga! Empréstimo Funcafé QUITADO. -R$${r.parcelaPaga.toLocaleString("pt-BR")}`
             : `🏦 Parcela Funcafé (${novo.emprestimo.parcelasRestantes}/${novo.emprestimo.parcelasTotais}): -R$${r.parcelaPaga.toLocaleString("pt-BR")}`
@@ -511,8 +534,7 @@ function finalizarSecagem(state) {
 
   return comMensagem(
     {
-      ...state,
-      caixa: state.caixa + caixaAjuste,
+      ...ajustarCaixa(state, caixaAjuste),
       fase: "normal",
       loteSecagem: null,
       estoqueSacas: estoqueProx,
@@ -651,6 +673,14 @@ function acaoColher(state, { talhaoId, metodo }) {
   if (talhao.idadeAnos < 3) {
     return comMensagem(state, `❌ Lavoura ainda não formou (precisa 3 anos).`);
   }
+  // Fora da janela de colheita (mai–ago)? regra mora no reducer, não só na UI.
+  if (!estaEpocaColheita(state.tempo)) {
+    return comMensagem(state, `❌ Fora da época de colheita (mai–ago).`);
+  }
+  // Já colheu esta safra? só pode de novo após o reset do ciclo (1/set).
+  if (talhao.ciclo?.safraColhida) {
+    return comMensagem(state, `❌ Esse talhão já foi colhido nesta safra.`);
+  }
 
   // Colhedora não opera em montanhoso
   if (metodo === "colhedora") {
@@ -673,8 +703,12 @@ function acaoColher(state, { talhaoId, metodo }) {
   const custoOp = metodo === "colhedora" ? EQUIPAMENTOS.colhedora.custoOperacao * 5 : 0;
   const custoTotal = maoObra + custoOp;
 
-  // Lote A: alterna ciclo bienal do talhão após colheita
-  const stateComFlip = trocarTalhao(state, talhaoId, flipBienal);
+  // Lote A: alterna ciclo bienal do talhão após colheita +
+  // marca a safra como colhida (trava re-colheita até o reset de 1/set).
+  const stateComFlip = trocarTalhao(state, talhaoId, (t) => {
+    const tf = flipBienal(t);
+    return { ...tf, ciclo: { ...(tf.ciclo || {}), safraColhida: true } };
+  });
   const cicloProx = stateComFlip.talhoes.find((t) => t.id === talhaoId)?.cicloBienal;
 
   return comMensagem(
@@ -1048,10 +1082,23 @@ function acaoVenderTudo(state) {
 
 /* ---------- Dispatcher ---------- */
 
+// Ações que NÃO devem passar pelo diff de caixa de atualizarStatsCaixa:
+// - AVANCAR já contabiliza por evento (via ajustarCaixa);
+// - CARREGAR_SAVE / NOVA_PARTIDA / APAGAR trocam de partida (descontínuo):
+//   o diff entre dois jogos diferentes geraria receita/despesa fantasma.
+const ACOES_SEM_DIFF_STATS = new Set([
+  "AVANCAR",
+  "CARREGAR_SAVE",
+  "NOVA_PARTIDA",
+  "APAGAR",
+]);
+
 export function reducer(state, action) {
   const novo = reducerCore(state, action);
-  // Lote G4: tracking automático de receita/despesa por diff de caixa
-  const comStats = atualizarStatsCaixa(state, novo);
+  // Lote G4: tracking de receita/despesa por diff antes/depois (ações pontuais).
+  const comStats = ACOES_SEM_DIFF_STATS.has(action.type)
+    ? novo
+    : atualizarStatsCaixa(state, novo);
   // Lote G7: verifica marcos a cada ação
   const comMarcos = verificarMarcos(comStats);
   // Lote G1: avança tutorial após cada ação se condição cumprida
@@ -1061,7 +1108,7 @@ export function reducer(state, action) {
 function reducerCore(state, action) {
   switch (action.type) {
     case "NOVA_PARTIDA":
-      return novaPartida(action.payload.modo);
+      return novaPartida(action.payload.modo, action.payload.perfil);
     case "CARREGAR_SAVE":
       return action.payload;
     case "APAGAR":
@@ -1110,6 +1157,10 @@ function reducerCore(state, action) {
       return acaoFiliarCooperativa(state);
     case "ADERIR_CERTIFICACAO":
       return acaoAderirCertificacao(state, action.payload);
+    case "SET_VELOCIDADE":
+      return state ? { ...state, velocidade: action.payload.dias } : state;
+    case "REINICIAR_TUTORIAL":
+      return state ? { ...state, tutorial: { ativo: true, passo: 0, completado: false } } : state;
     case "PULAR_TUTORIAL":
       return state ? { ...state, tutorial: { ativo: false, passo: 0, completado: false } } : state;
     case "AVANCAR_TUTORIAL":

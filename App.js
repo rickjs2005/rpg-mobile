@@ -23,10 +23,17 @@ import {
 
 import { JogoProvider, useJogo } from "./src/hooks/useJogo.jsx";
 import {
-  useCarregarSaveInicial,
+  useCarregarSlots,
   useAutoSave,
-  apagarLocal,
+  apagarSlot,
 } from "./src/hooks/useSave.js";
+import { useAudioBus } from "./src/audio/useAudio.js";
+import { carregarPrefsAudio, preCarregarEfeitos } from "./src/audio/engine.js";
+import {
+  carregarStatsGlobais,
+  registrarProgresso,
+  registrarPartidaIniciada,
+} from "./src/state/estatisticasGlobais.js";
 import { tema } from "./src/styles/tema.js";
 
 import TelaInicio from "./src/components/TelaInicio.jsx";
@@ -54,33 +61,84 @@ function Tela({ id, setTela }) {
   }
 }
 
-function Root() {
+function Root({ slots, recarregar }) {
   const { state, dispatch } = useJogo();
-  useAutoSave(state);
   const [tela, setTela] = useState("fazenda");
   const [glossarioOpen, setGlossarioOpen] = useState(false);
   const [dashboardOpen, setDashboardOpen] = useState(false);
+  // Menu principal aparece ao abrir; entra no jogo via Continuar/Começar.
+  const [emJogo, setEmJogo] = useState(false);
+  // Slot ativo: pra onde o autosave grava.
+  const [slotAtivo, setSlotAtivo] = useState(null);
+  useAutoSave(state, slotAtivo);
+  // Barramento de áudio: música por contexto + SFX por evento (silencioso até ter arquivos).
+  useAudioBus({ state, emJogo });
+
+  // Recordes globais: registra máximos (caixa / melhor SCA) conforme o jogo evolui.
+  useEffect(() => {
+    if (!state) return;
+    registrarProgresso({
+      caixa: state.caixa,
+      sca: state.stats?.melhorLote?.sca,
+    });
+  }, [state?.caixa, state?.stats?.melhorLote?.sca]);
 
   // Auto-navega pra Safra quando acabou de colher (precisa decidir pós).
   useEffect(() => {
     if (state?.fase === "aguardando_pos") setTela("safra");
   }, [state?.fase]);
 
-  if (!state) return <TelaInicio />;
+  // ---- Ações do menu de slots ----
+  const jogarSlot = (slot) => {
+    const s = slots?.find((x) => x.slot === slot)?.estado;
+    if (!s) return;
+    dispatch({ type: "CARREGAR_SAVE", payload: s });
+    setSlotAtivo(slot);
+    setTela("fazenda");
+    setEmJogo(true);
+  };
+  const novoNoSlot = (slot, modo, perfil) => {
+    dispatch({ type: "NOVA_PARTIDA", payload: { modo, perfil } });
+    registrarPartidaIniciada();
+    setSlotAtivo(slot);
+    setTela("fazenda");
+    setEmJogo(true);
+  };
+  const apagarSlotMenu = async (slot) => {
+    await apagarSlot(slot);
+    if (slot === slotAtivo) {
+      dispatch({ type: "APAGAR" });
+      setSlotAtivo(null);
+    }
+    await recarregar();
+  };
+  const voltarMenu = () => {
+    setEmJogo(false);
+    recarregar();
+  };
+
+  // Menu enquanto não entrou no jogo — ou se não há partida em memória.
+  if (!emJogo || !state) {
+    return (
+      <TelaInicio
+        slots={slots}
+        onJogarSlot={jogarSlot}
+        onNovoSlot={novoNoSlot}
+        onApagarSlot={apagarSlotMenu}
+      />
+    );
+  }
 
   const confirmarApagar = () => {
     Alert.alert(
-      "Apagar save?",
-      "Você vai perder a partida atual e voltar à tela de início.",
+      "Apagar esta fazenda?",
+      "Você vai apagar a partida deste slot permanentemente.",
       [
         { text: "Cancelar", style: "cancel" },
         {
           text: "Apagar",
           style: "destructive",
-          onPress: async () => {
-            await apagarLocal();
-            dispatch({ type: "APAGAR" });
-          },
+          onPress: () => apagarSlotMenu(slotAtivo),
         },
       ]
     );
@@ -98,9 +156,12 @@ function Root() {
       >
         <BalaoTutorial />
         <Tela id={tela} setTela={setTela} />
-        <View style={{ marginTop: 16 }}>
+        <View style={{ marginTop: 16, gap: 8 }}>
+          <Botao variante="secundario" pequeno onPress={voltarMenu}>
+            ≡ Menu / trocar fazenda
+          </Botao>
           <Botao variante="perigo" pequeno onPress={confirmarApagar}>
-            🗑️ Apagar save
+            🗑️ Apagar esta fazenda
           </Botao>
         </View>
       </ScrollView>
@@ -143,23 +204,32 @@ function Root() {
 }
 
 function Boot() {
-  const { estado, carregando } = useCarregarSaveInicial();
+  const { slots, carregando, recarregar } = useCarregarSlots();
   if (carregando) {
     return (
       <View style={shellStyles.splash}>
         <ActivityIndicator size="large" color={tema.dourado} />
-        <Text style={shellStyles.splashTxt}>Carregando save…</Text>
+        <Text style={shellStyles.splashTxt}>Carregando…</Text>
       </View>
     );
   }
+  // O reducer começa vazio; o slot escolhido é carregado sob demanda.
   return (
-    <JogoProvider estadoInicial={estado}>
-      <Root />
+    <JogoProvider estadoInicial={null}>
+      <Root slots={slots} recarregar={recarregar} />
     </JogoProvider>
   );
 }
 
 export default function App() {
+  // Carrega preferências de áudio (globais) e pré-aquece os SFX de UI
+  // (os primeiros que o usuário toca — evita latência no 1º clique).
+  useEffect(() => {
+    carregarPrefsAudio();
+    preCarregarEfeitos(["ui_click", "ui_modal"]);
+    carregarStatsGlobais();
+  }, []);
+
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />

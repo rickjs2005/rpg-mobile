@@ -1,5 +1,6 @@
 import { Pressable, Text, StyleSheet } from "react-native";
 import { tema } from "../styles/tema.js";
+import { tocarEfeito } from "../audio/engine.js";
 
 /* Botão estilo Hay Day: pílula com "base" 3D (borda inferior grossa
    na cor escura). No toque, afunda — reduz a base e desce alguns px. */
@@ -25,7 +26,10 @@ export default function Botao({
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={(e) => {
+        tocarEfeito("ui_click");
+        onPress?.(e);
+      }}
       disabled={disabled}
       style={({ pressed }) => [
         styles.base,
