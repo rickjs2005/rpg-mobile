@@ -1,5 +1,6 @@
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, Alert, StyleSheet } from "react-native";
 import { useJogo } from "../hooks/useJogo.jsx";
+import { valorVendaTalhao } from "../logic/propriedades.js";
 import Botao from "./Botao.jsx";
 import { tema, corVariedade } from "../styles/tema.js";
 import { VARIEDADES } from "../data/cafe.js";
@@ -17,6 +18,7 @@ import {
   CUSTO_PLANTIO_POR_HECTARE,
   SOMBREAMENTO,
   CUSTO_CAPINA_POR_HECTARE,
+  PES_POR_HECTARE,
 } from "../data/constantes.js";
 import { PRAGAS, nivelPraga } from "../data/pragas.js";
 import { temPragaNaoRevelada } from "../logic/pragas.js";
@@ -76,6 +78,22 @@ export default function CardTalhao({ talhao }) {
     if (!podeColher) return 0;
     const c = colher(talhao, calcularMaturacao(talhao, state.tempo.mes), metodo, state.equipamentos, state.equipe);
     return c?.sacas ?? 0;
+  };
+
+  const venderTerra = () => {
+    const valor = valorVendaTalhao(talhao);
+    Alert.alert(
+      "Vender esta terra?",
+      `Você recebe R$${valor.toLocaleString("pt-BR")} e perde o talhão${talhao.variedadeId ? " e a lavoura" : ""}. Não dá pra desfazer.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Vender",
+          style: "destructive",
+          onPress: () => dispatch({ type: "VENDER_TALHAO", payload: { talhaoId: talhao.id } }),
+        },
+      ]
+    );
   };
   const insumosNoInv = Object.keys(INSUMOS).filter(
     (k) => (state.inventario[k] || 0) > 0
@@ -303,6 +321,15 @@ export default function CardTalhao({ talhao }) {
               </Text>
             )}
 
+            <Text style={styles.densDesc}>
+              🌳 O terreno comporta ~
+              {Math.round(
+                talhao.hectares *
+                  (PES_POR_HECTARE.arabica || 3500) *
+                  DENSIDADES[densidadeEscolhida].multiplicadorPes
+              ).toLocaleString("pt-BR")}{" "}
+              pés ({talhao.hectares}ha · {DENSIDADES[densidadeEscolhida].nome})
+            </Text>
             <Text style={[styles.densDesc, { color: tema.dourado }]}>
               Custo plantio: R$
               {Math.round(
@@ -482,6 +509,13 @@ export default function CardTalhao({ talhao }) {
           <Text style={styles.aguarda}>
             🛌 Lavoura em recuperação — sem colheita, sem aplicação por enquanto.
           </Text>
+        )}
+
+        {/* Vender a terra (revenda do talhão) */}
+        {!emRecuperacao && (
+          <Botao pequeno variante="perigo" onPress={venderTerra}>
+            💵 Vender terra (R${valorVendaTalhao(talhao).toLocaleString("pt-BR")})
+          </Botao>
         )}
       </View>
     </View>

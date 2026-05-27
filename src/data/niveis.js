@@ -68,8 +68,13 @@ export const NIVEL_EQUIPAMENTO = {
 export const NIVEL_PROPRIEDADE = {
   sitio_baixada: 2,
   ladeira_serra: 2,
-  fazenda_velha: 4,
+  ribeirao_fundo: 3,
+  alto_da_serra: 3,
   morro_arabica: 4,
+  fazenda_velha: 4,
+  varzea_grande: 4,
+  fazenda_bourbon: 5,
+  planalto_cerrado: 5,
 };
 
 export function nivelRequerido(mapa, id) {

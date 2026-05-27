@@ -76,6 +76,8 @@ export function criarTalhao(opts) {
     sombreado: opts.sombreado || false,
     // Mato/capina: 0 (limpo) a 1 (tomado). Cresce com a chuva.
     mato: opts.mato || 0,
+    // Origem (se veio de uma propriedade comprada) — pra revenda devolver ao catálogo.
+    propId: opts.propId || null,
   };
 }
 

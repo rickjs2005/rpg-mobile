@@ -55,7 +55,7 @@ import {
   custoMetodoPos,
   podePagar,
 } from "../logic/economia.js";
-import { comprar as comprarProp } from "../logic/propriedades.js";
+import { comprar as comprarProp, valorVendaTalhao } from "../logic/propriedades.js";
 import {
   certsVazias,
   aderir as aderirCert,
@@ -771,6 +771,30 @@ function acaoComprarPropriedade(state, { propId }) {
   );
 }
 
+function acaoVenderTalhao(state, { talhaoId }) {
+  const talhao = state.talhoes.find((t) => t.id === talhaoId);
+  if (!talhao) return state;
+  if (state.colheitaPendente?.talhaoId === talhaoId || state.loteSecagem?.talhaoId === talhaoId) {
+    return comMensagem(state, `❌ Termine a colheita/secagem deste talhão antes de vendê-lo.`);
+  }
+  if (estaEmRecuperacao(talhao)) {
+    return comMensagem(state, `❌ Talhão em recuperação não pode ser vendido.`);
+  }
+  const valor = valorVendaTalhao(talhao);
+  const propriedadesCompradas = talhao.propId
+    ? state.propriedadesCompradas.filter((p) => p !== talhao.propId)
+    : state.propriedadesCompradas;
+  return comMensagem(
+    {
+      ...state,
+      caixa: state.caixa + valor,
+      talhoes: state.talhoes.filter((t) => t.id !== talhaoId),
+      propriedadesCompradas,
+    },
+    `💵 Vendeu a terra${talhao.variedadeId ? " (com lavoura)" : ""} de ${talhao.hectares}ha: +R$${valor.toLocaleString("pt-BR")}.`
+  );
+}
+
 function acaoPlantar(state, { talhaoId, variedadeId, densidade = "tradicional", sombreado = false }) {
   const talhao = state.talhoes.find((t) => t.id === talhaoId);
   if (!talhao || talhao.variedadeId) return state;
@@ -1402,6 +1426,8 @@ function reducerCore(state, action) {
       return acaoComprarEquipamento(state, action.payload);
     case "COMPRAR_PROPRIEDADE":
       return acaoComprarPropriedade(state, action.payload);
+    case "VENDER_TALHAO":
+      return acaoVenderTalhao(state, action.payload);
     case "PLANTAR":
       return acaoPlantar(state, action.payload);
     case "APLICAR_INSUMO":
