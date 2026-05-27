@@ -84,6 +84,8 @@ import { INSUMOS, EQUIPAMENTOS, CERTIFICACOES, EQUIPE, TULHAS, TULHA_PROGRESSAO 
 import { PASSOS_TUTORIAL } from "../data/tutorial.js";
 import { MARCOS } from "../data/marcos.js";
 import { MISSOES_INICIAIS, missaoPorId, infoMissao, proximaMissao } from "../data/missoes.js";
+import { leilaoAberto, faixaMultiplicador, classificacaoLeilao } from "../data/leilao.js";
+import { valorLote } from "../logic/precos.js";
 import {
   nivelPorXp,
   xpVender,
@@ -894,6 +896,54 @@ function acaoVenderLote(state, { loteId }) {
   return ganharXp(vendido, xpVender(lote.sacas));
 }
 
+function acaoLeiloar(state, { loteId }) {
+  const lote = state.estoqueSacas.find((l) => l.id === loteId);
+  if (!lote) return state;
+  if (!lote.microlote) {
+    return comMensagem(state, `❌ Só microlotes (SCA ≥ 85) entram no leilão.`);
+  }
+  if (!leilaoAberto(state.tempo.mes)) {
+    return comMensagem(state, `❌ O leilão de especiais abre na primavera (set–nov).`);
+  }
+  const rng = createRng(state.rngState);
+  const faixa = faixaMultiplicador(lote.sca || 85);
+  const frac = rng.next();
+  const mult = faixa.min + frac * (faixa.max - faixa.min);
+  const valor = Math.round(valorLote(state, lote) * mult);
+  const rank = classificacaoLeilao(frac);
+
+  // Stats (a receita em si é contabilizada pelo diff de caixa no wrapper).
+  const stats = state.stats || {};
+  const ano = state.tempo.ano;
+  const porAno = { ...(stats.porAno || {}) };
+  if (!porAno[ano]) porAno[ano] = { receita: 0, despesa: 0, sacas: 0 };
+  porAno[ano] = { ...porAno[ano], sacas: (porAno[ano].sacas || 0) + lote.sacas };
+  const ehMelhor = !stats.melhorLote || valor > (stats.melhorLote.valor || 0);
+  const melhor = ehMelhor
+    ? { sca: lote.sca || 0, classe: lote.classeNome, precoPorSaca: Math.round(valor / lote.sacas), sacas: lote.sacas, valor, variedadeId: lote.variedadeId, ano }
+    : stats.melhorLote;
+
+  let novo = {
+    ...state,
+    rngState: rng.getState(),
+    caixa: state.caixa + valor,
+    estoqueSacas: state.estoqueSacas.filter((l) => l.id !== loteId),
+    stats: {
+      ...stats,
+      sacasVendidasTotal: (stats.sacasVendidasTotal || 0) + lote.sacas,
+      vendasCount: (stats.vendasCount || 0) + 1,
+      melhorLote: melhor,
+      porAno,
+    },
+  };
+  novo = comMensagem(
+    novo,
+    `🏆 ${rank} no ${"Leilão de Especiais"}! ${lote.sacas} sacas (SCA ${lote.sca}) a ${mult.toFixed(1)}× — +R$${valor.toLocaleString("pt-BR")}`
+  );
+  // Leilão dá XP em dobro (evento de prestígio).
+  return ganharXp(novo, xpVender(lote.sacas) * 2);
+}
+
 function acaoAderirCertificacao(state, { certId }) {
   const def = CERTIFICACOES[certId];
   if (!def) return state;
@@ -1249,6 +1299,8 @@ function reducerCore(state, action) {
       return acaoIniciarPosColheita(state, action.payload);
     case "VENDER_LOTE":
       return acaoVenderLote(state, action.payload);
+    case "LEILOAR":
+      return acaoLeiloar(state, action.payload);
     case "VENDER_TUDO":
       return acaoVenderTudo(state);
     case "ESQUELETAR":

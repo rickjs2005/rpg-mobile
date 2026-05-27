@@ -11,6 +11,7 @@ import { tema, corVariedade } from "../styles/tema.js";
 import { VARIEDADES } from "../data/cafe.js";
 import { formatarData } from "../logic/tempo.js";
 import { precoFinalSaca, valorLote } from "../logic/precos.js";
+import { leilaoAberto, faixaMultiplicador } from "../data/leilao.js";
 
 const TIPO_LOTE = { cereja: "🍒 cereja", boia: "🟡 boia", natural: "" };
 
@@ -20,6 +21,8 @@ export default function CardLote({ lote }) {
   const cor = variedade ? corVariedade(variedade.cor) : tema.gold;
   const precoSaca = precoFinalSaca(state, lote);
   const total = valorLote(state, lote);
+  const leilaoOn = lote.microlote && leilaoAberto(state.tempo?.mes);
+  const faixa = leilaoOn ? faixaMultiplicador(lote.sca || 85) : null;
 
   return (
     <View style={[styles.card, lote.microlote && styles.cardMicro]}>
@@ -52,6 +55,22 @@ export default function CardLote({ lote }) {
         </View>
 
         <Text style={styles.data}>📅 Colhido em {formatarData(lote.dataColheita)}</Text>
+
+        {/* Leilão de especiais (set–nov, só microlote) */}
+        {leilaoOn && (
+          <View style={styles.leilaoBox}>
+            <Text style={styles.leilaoTxt}>
+              🏆 Leilão aberto · estimado R$ {Math.round(total * faixa.min).toLocaleString("pt-BR")}–
+              {Math.round(total * faixa.max).toLocaleString("pt-BR")}
+            </Text>
+            <Botao
+              variante="primario"
+              onPress={() => dispatch({ type: "LEILOAR", payload: { loteId: lote.id } })}
+            >
+              🏆 Leiloar
+            </Botao>
+          </View>
+        )}
 
         {/* Footer: valor + vender */}
         <View style={styles.footer}>
@@ -118,6 +137,15 @@ const styles = StyleSheet.create({
   chipTxt: { color: tema.texto, fontSize: 12, fontWeight: "700", fontVariant: ["tabular-nums"] },
 
   data: { color: tema.textoDim, fontSize: 11 },
+  leilaoBox: {
+    backgroundColor: "#fff3d2",
+    borderWidth: 2,
+    borderColor: tema.gold,
+    borderRadius: 12,
+    padding: 10,
+    gap: 8,
+  },
+  leilaoTxt: { color: tema.douradoEscuro, fontSize: 12, fontWeight: "800" },
 
   footer: {
     flexDirection: "row",

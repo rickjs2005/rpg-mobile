@@ -15,6 +15,7 @@ import { tema } from "../styles/tema.js";
 import { PRECO_TIPO_BRASIL, SCA_LIMIARES, LIMIAR_MICROLOTE_SCA } from "../data/constantes.js";
 import { TULHAS } from "../data/economia.js";
 import { valorLote } from "../logic/precos.js";
+import { leilaoAberto } from "../data/leilao.js";
 
 const SCA_COR = {
   "Exemplar (90+)": { bg: tema.gold, fg: "#3d2e00" },
@@ -63,6 +64,16 @@ export default function TelaMercado() {
           </View>
         </View>
       </Painel>
+
+      {/* ---------- Banner do leilão (set–nov) ---------- */}
+      {leilaoAberto(state.tempo.mes) && microlotes.length > 0 && (
+        <View style={styles.leilaoBanner}>
+          <Text style={styles.leilaoBannerTit}>🏆 Leilão de Cafés Especiais aberto!</Text>
+          <Text style={styles.leilaoBannerSub}>
+            Inscreva seus microlotes (SCA ≥ 85) na aba ⭐ Microlotes e arremate por um múltiplo do valor.
+          </Text>
+        </View>
+      )}
 
       {/* ---------- Bento: tabelas ---------- */}
       <View style={styles.bento}>
@@ -176,6 +187,20 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "rgba(255,255,255,0.45)",
   },
+
+  /* Leilão banner */
+  leilaoBanner: {
+    backgroundColor: "#fff3d2",
+    borderWidth: 3,
+    borderColor: tema.gold,
+    borderBottomWidth: 6,
+    borderBottomColor: tema.goldBorda,
+    borderRadius: 16,
+    padding: 14,
+    gap: 4,
+  },
+  leilaoBannerTit: { color: tema.douradoEscuro, fontSize: 16, fontWeight: "800" },
+  leilaoBannerSub: { color: tema.textoDim, fontSize: 12, lineHeight: 17 },
 
   /* Bento */
   bento: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
