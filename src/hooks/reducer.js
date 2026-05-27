@@ -809,11 +809,14 @@ function acaoAplicarInsumo(state, { talhaoId, insumoId }) {
 
   // Lote D: defensivo zera pragas ANTES de aplicar (efeito principal)
   const tinhaPragas = Object.keys(talhao.pragas || {}).length > 0;
-  // Adubo na janela de florada (set-nov) = "adubação de choque" → nutre a safra.
-  const nutriFlorada = insumoId === "adubo" && NUTRICAO_FLORADA.meses.includes(state.tempo.mes);
+  // Qualquer adubação na janela de florada (set-nov) nutre a safra.
+  const ADUBOS = ["adubo", "esterco", "adubo_foliar"];
+  const nutriFlorada = ADUBOS.includes(insumoId) && NUTRICAO_FLORADA.meses.includes(state.tempo.mes);
+  // Defensivo (químico) e bio-controle eliminam pragas.
+  const limpaPragas = insumoId === "defensivo" || insumoId === "bio_controle";
   let novoState = trocarTalhao(state, talhaoId, (t) => {
     let t2 = t;
-    if (insumoId === "defensivo") t2 = zerarPragas(t2);
+    if (limpaPragas) t2 = zerarPragas(t2);
     t2 = aplicarInsumo(t2, insumoId);
     if (nutriFlorada) t2 = { ...t2, ciclo: { ...(t2.ciclo || {}), nutrido: true } };
     return t2;
@@ -837,9 +840,13 @@ function acaoAplicarInsumo(state, { talhaoId, insumoId }) {
       ? tinhaPragas
         ? `🛡️ Defensivo eliminou as pragas do talhão.`
         : `🛡️ Defensivo aplicado preventivamente.`
-      : nutriFlorada
-        ? `🌱 Adubação de florada aplicada — safra fortalecida!`
-        : `🌱 Aplicou ${INSUMOS[insumoId].nome} no talhão.`;
+      : insumoId === "bio_controle"
+        ? tinhaPragas
+          ? `🐞 Controle biológico eliminou as pragas (sem químico).`
+          : `🐞 Controle biológico aplicado preventivamente.`
+        : nutriFlorada
+          ? `🌱 Adubação de florada aplicada — safra fortalecida!`
+          : `🌱 Aplicou ${INSUMOS[insumoId].nome} no talhão.`;
   return comMensagem(novoState, msg);
 }
 

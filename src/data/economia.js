@@ -27,6 +27,34 @@ export const INSUMOS = {
     efeito: "protege contra ferrugem/broca",
     desc: "Controla pragas e doenças. Reduz perda de sanidade na chuva.",
   },
+  adubo_foliar: {
+    nome: "Adubo foliar",
+    custo: 220,
+    icone: "🍃",
+    efeito: "sanidade +0.15 rápida (folha)",
+    desc: "Micronutrientes (Zn, B, Mn) pulverizados na folha — correção rápida em florada/granação.",
+  },
+  esterco: {
+    nome: "Esterco / composto",
+    custo: 180,
+    icone: "🌾",
+    efeito: "sanidade +0.20, orgânico",
+    desc: "Adubação orgânica. Melhora o solo e é compatível com a certificação orgânica.",
+  },
+  gesso: {
+    nome: "Gesso agrícola",
+    custo: 160,
+    icone: "🧱",
+    efeito: "sanidade +0.12, lento (raiz)",
+    desc: "Leva cálcio e enxofre à profundidade — raízes mais fundas. Efeito gradual (~60 dias).",
+  },
+  bio_controle: {
+    nome: "Controle biológico",
+    custo: 600,
+    icone: "🐞",
+    efeito: "elimina pragas sem invalidar orgânico",
+    desc: "Beauveria bassiana / parasitoides. Controla pragas sem químico — não derruba a certificação orgânica.",
+  },
 };
 
 /* ---------- EQUIPAMENTOS (compra única, impacto duradouro) ----------
@@ -81,6 +109,33 @@ export const EQUIPAMENTOS = {
       penalidadeBebida: -0.04, // menos seletiva que a panha manual
     },
     melhorEm: "plano",
+  },
+  derricadeira: {
+    nome: "Derriçadeira (mãozinha)",
+    icone: "🔧",
+    custo: 3500,
+    custoOperacao: 20,
+    desc: "Derriçadeira portátil motorizada. Acelera a colheita até no morro — rende em qualquer terreno.",
+    efeitos: { bonusRendimento: 0.08 },
+    melhorEm: "qualquer",
+  },
+  despolpadora: {
+    nome: "Despolpadora CD",
+    icone: "⚙️",
+    custo: 8000,
+    custoOperacao: 30,
+    desc: "Descasca a cereja antes de secar — café mais limpo e melhor bebida.",
+    efeitos: { bonusBebida: 0.06 },
+    melhorEm: "qualquer",
+  },
+  classificadora: {
+    nome: "Catador / classificadora",
+    icone: "🔎",
+    custo: 22000,
+    custoOperacao: 40,
+    desc: "Separa grãos por cor e tamanho, removendo defeitos — eleva o tipo do lote.",
+    efeitos: { bonusBebida: 0.05 },
+    melhorEm: "qualquer",
   },
 };
 

@@ -56,7 +56,15 @@ export const NIVEL_VARIEDADE = {
   bourbon_vermelho: 4,
   conilon: 5,
 };
-export const NIVEL_EQUIPAMENTO = { trator: 2, secador: 2, drone: 3, colhedora: 4 };
+export const NIVEL_EQUIPAMENTO = {
+  derricadeira: 2,
+  trator: 2,
+  secador: 2,
+  despolpadora: 3,
+  drone: 3,
+  colhedora: 4,
+  classificadora: 4,
+};
 export const NIVEL_PROPRIEDADE = {
   sitio_baixada: 2,
   ladeira_serra: 2,
