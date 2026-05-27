@@ -1,13 +1,17 @@
 import { useState } from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, ScrollView, Modal, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useJogo } from "../hooks/useJogo.jsx";
 import CardTalhao from "./CardTalhao.jsx";
+import PlotTalhao from "./PlotTalhao.jsx";
 import Timeline from "./Timeline.jsx";
 import HistoricoEventos from "./HistoricoEventos.jsx";
 import Painel from "./Painel.jsx";
 import { tema } from "../styles/tema.js";
 import { INSUMOS } from "../data/economia.js";
 import { formatarData } from "../logic/tempo.js";
+import { climaDescreve } from "../logic/clima.js";
+import { resumoFazenda } from "../logic/resumoFazenda.js";
 
 // Migra save antigo: state.mensagens (strings) → eventos sintéticos.
 function eventosCompat(state) {
@@ -24,12 +28,56 @@ function eventosCompat(state) {
 
 export default function TelaFazenda() {
   const { state } = useJogo();
+  const insets = useSafeAreaInsets();
   const [histAberto, setHistAberto] = useState(false);
+  const [vista, setVista] = useState("mapa"); // "mapa" | "lista"
+  const [talhaoModalId, setTalhaoModalId] = useState(null);
   const eventos = eventosCompat(state);
+  const resumo = resumoFazenda(state);
+  const talhaoModal = state.talhoes.find((t) => t.id === talhaoModalId) || null;
 
   return (
     <View style={styles.container}>
       <Timeline />
+
+      {/* Clima de hoje + resumo + atenção */}
+      <Painel icone="🌤️" titulo="Sua fazenda">
+        {state.climaHoje && (
+          <View style={styles.climaRow}>
+            <Text style={styles.climaTxt}>{climaDescreve(state.climaHoje.tipo)}</Text>
+            <Text style={styles.climaMm}>
+              {state.climaHoje.mm > 0 ? `${state.climaHoje.mm} mm` : "sem chuva"}
+            </Text>
+          </View>
+        )}
+        <View style={styles.resumoGrid}>
+          <Mini label="Talhões" valor={`${resumo.ativos}/${resumo.talhoes}`} />
+          <Mini label="Pés" valor={resumo.pes.toLocaleString("pt-BR")} />
+          <Mini label="Hectares" valor={resumo.hectares.toFixed(1)} />
+          {resumo.sacasEstimadas != null && (
+            <Mini label="Safra estim." valor={`~${resumo.sacasEstimadas} sc`} destaque />
+          )}
+        </View>
+        {resumo.atencao.length > 0 && (
+          <View style={styles.atencaoBox}>
+            <Text style={styles.atencaoTit}>⚠️ Precisa de atenção</Text>
+            {resumo.atencao.map((a, i) => (
+              <View key={i} style={styles.atencaoRow}>
+                <Text style={styles.atencaoIcone}>{a.icone}</Text>
+                <Text
+                  style={[
+                    styles.atencaoTxt,
+                    a.nivel === "critico" && { color: tema.vermelho },
+                    a.nivel === "acao" && { color: tema.verde, fontWeight: "700" },
+                  ]}
+                >
+                  {a.texto}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </Painel>
 
       {/* Inventário em grade */}
       <Painel icone="📦" titulo="Inventário">
@@ -56,13 +104,47 @@ export default function TelaFazenda() {
         </View>
       </Painel>
 
-      {/* Talhões */}
-      <Text style={styles.h2}>🌾 Talhões ({state.talhoes.length})</Text>
-      <View style={styles.lista}>
-        {state.talhoes.map((t) => (
-          <CardTalhao key={t.id} talhao={t} />
-        ))}
+      {/* Talhões — toggle Mapa / Lista */}
+      <View style={styles.talhoesHeader}>
+        <Text style={styles.h2}>🌾 Talhões ({state.talhoes.length})</Text>
+        <View style={styles.toggle}>
+          <Pressable
+            onPress={() => setVista("mapa")}
+            style={[styles.toggleBtn, vista === "mapa" && styles.toggleAtivo]}
+          >
+            <Text style={[styles.toggleTxt, vista === "mapa" && styles.toggleTxtAtivo]}>
+              🗺️ Mapa
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setVista("lista")}
+            style={[styles.toggleBtn, vista === "lista" && styles.toggleAtivo]}
+          >
+            <Text style={[styles.toggleTxt, vista === "lista" && styles.toggleTxtAtivo]}>
+              📋 Lista
+            </Text>
+          </Pressable>
+        </View>
       </View>
+
+      {vista === "mapa" ? (
+        <View style={styles.mapaGrid}>
+          {state.talhoes.map((t) => (
+            <PlotTalhao
+              key={t.id}
+              talhao={t}
+              mes={state.tempo.mes}
+              onPress={() => setTalhaoModalId(t.id)}
+            />
+          ))}
+        </View>
+      ) : (
+        <View style={styles.lista}>
+          {state.talhoes.map((t) => (
+            <CardTalhao key={t.id} talhao={t} />
+          ))}
+        </View>
+      )}
 
       {/* Eventos recentes */}
       {eventos.length > 0 && (
@@ -91,12 +173,83 @@ export default function TelaFazenda() {
         onClose={() => setHistAberto(false)}
         eventos={eventos}
       />
+
+      {/* Detalhe do talhão (a partir do mapa) — CardTalhao completo */}
+      <Modal
+        visible={!!talhaoModal}
+        animationType="slide"
+        onRequestClose={() => setTalhaoModalId(null)}
+      >
+        <View style={[styles.modalRoot, { paddingTop: insets.top }]}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTit}>🌾 Detalhe do talhão</Text>
+            <Pressable onPress={() => setTalhaoModalId(null)} hitSlop={8} style={styles.modalFechar}>
+              <Text style={styles.modalFecharTxt}>✕</Text>
+            </Pressable>
+          </View>
+          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24 }}>
+            {talhaoModal && <CardTalhao talhao={talhaoModal} />}
+          </ScrollView>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
+function Mini({ label, valor, destaque }) {
+  return (
+    <View style={[styles.miniBox, destaque && styles.miniBoxDestaque]}>
+      <Text style={styles.miniLabel}>{label}</Text>
+      <Text style={[styles.miniVal, destaque && { color: tema.verde }]}>{valor}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { gap: 16 },
+
+  /* Clima + resumo + atenção */
+  climaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: tema.bg3,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+  },
+  climaTxt: { color: tema.texto, fontSize: 15, fontWeight: "700" },
+  climaMm: { color: tema.azul, fontSize: 13, fontWeight: "700", fontVariant: ["tabular-nums"] },
+  resumoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  miniBox: {
+    flex: 1,
+    minWidth: "22%",
+    backgroundColor: tema.bg3,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: tema.linha,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    alignItems: "center",
+    gap: 2,
+  },
+  miniBoxDestaque: { borderColor: tema.verde },
+  miniLabel: { color: tema.textoDim, fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.3 },
+  miniVal: { color: tema.texto, fontSize: 15, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  atencaoBox: {
+    marginTop: 10,
+    backgroundColor: tema.creme,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: tema.linha,
+    padding: 10,
+    gap: 5,
+  },
+  atencaoTit: { color: tema.madeira, fontSize: 12, fontWeight: "800", marginBottom: 2 },
+  atencaoRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  atencaoIcone: { fontSize: 14, width: 20, textAlign: "center" },
+  atencaoTxt: { color: tema.texto, fontSize: 13, flex: 1 },
 
   h2: {
     color: tema.madeira,
@@ -106,6 +259,51 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
   },
   lista: { gap: 12 },
+
+  /* Toggle Mapa / Lista */
+  talhoesHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  toggle: {
+    flexDirection: "row",
+    backgroundColor: tema.bg3,
+    borderRadius: 999,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: tema.linha,
+  },
+  toggleBtn: { paddingVertical: 5, paddingHorizontal: 12, borderRadius: 999 },
+  toggleAtivo: { backgroundColor: tema.bg2, borderWidth: 1, borderColor: tema.dourado },
+  toggleTxt: { color: tema.textoDim, fontSize: 12, fontWeight: "700" },
+  toggleTxtAtivo: { color: tema.dourado },
+
+  /* Grid do mapa */
+  mapaGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "space-between" },
+
+  /* Modal de detalhe */
+  modalRoot: { flex: 1, backgroundColor: tema.bg },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: tema.bg3,
+    backgroundColor: tema.bg2,
+  },
+  modalTit: { color: tema.madeira, fontSize: 16, fontWeight: "800" },
+  modalFechar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: tema.bg3,
+  },
+  modalFecharTxt: { color: tema.texto, fontSize: 18, fontWeight: "700" },
 
   /* Inventário em grade */
   invGrid: {

@@ -20,6 +20,7 @@ import {
 import { PRAGAS, nivelPraga } from "../data/pragas.js";
 import { temPragaNaoRevelada } from "../logic/pragas.js";
 import { estaEpocaColheita } from "../logic/tempo.js";
+import { calcularMaturacao } from "../logic/maturacao.js";
 import {
   categoriaIdade,
   estaEmRecuperacao,
@@ -211,6 +212,14 @@ export default function CardTalhao({ talhao }) {
           })}
         </View>
       )}
+
+      {/* Maturação dos frutos (só na janela de colheita) */}
+      {!ehVazio &&
+        talhao.idadeAnos >= ANOS_FORMACAO &&
+        !emRecuperacao &&
+        estaEpocaColheita(state.tempo) && (
+          <FrutosMaturacao perfil={calcularMaturacao(talhao, state.tempo.mes)} />
+        )}
 
       <View style={styles.acoes}>
         {ehVazio && (
@@ -441,6 +450,32 @@ function corBarra(pct) {
   return tema.verde;
 }
 
+// Fileira de frutos coloridos pela maturação real do talhão no mês.
+const COR_FRUTO = { maduro: "#c0392b", verde: tema.verde, seco: tema.madeira };
+function FrutosMaturacao({ perfil }) {
+  const total = 14;
+  const nMaduro = Math.round((perfil.maduro || 0) * total);
+  const nSeco = Math.round((perfil.seco || 0) * total);
+  const nVerde = Math.max(0, total - nMaduro - nSeco);
+  const dots = [
+    ...Array(nMaduro).fill("maduro"),
+    ...Array(nVerde).fill("verde"),
+    ...Array(nSeco).fill("seco"),
+  ];
+  return (
+    <View style={styles.matBox}>
+      <Text style={styles.matLabel}>
+        🍒 Maturação · {Math.round((perfil.maduro || 0) * 100)}% maduro
+      </Text>
+      <View style={styles.matDots}>
+        {dots.map((k, i) => (
+          <View key={i} style={[styles.frutoDot, { backgroundColor: COR_FRUTO[k] }]} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   card: {
     backgroundColor: tema.bg2,
@@ -555,6 +590,22 @@ const styles = StyleSheet.create({
     color: tema.texto,
     fontSize: 10,
     fontWeight: "500",
+  },
+  matBox: {
+    backgroundColor: tema.bg3,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    gap: 6,
+  },
+  matLabel: { color: tema.textoDim, fontSize: 11, fontWeight: "700" },
+  matDots: { flexDirection: "row", flexWrap: "wrap", gap: 4 },
+  frutoDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.12)",
   },
   acoes: {
     flexDirection: "row",

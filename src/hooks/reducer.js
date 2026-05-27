@@ -132,6 +132,7 @@ export function novaPartida(modo, perfil) {
     emprestimo: null, // Lote H7: financiamento Funcafé
     tulha: "pequena", // Lote H4: capacidade de estoque
     velocidade: 7, // dias por "Avançar" fora das fases diárias (config)
+    climaHoje: null, // { tipo, mm } do último dia processado (UI)
     cooperativa: { filiado: false }, // Lote H6: cooperativa
     eventos: [], // Lote G6: log estruturado { tempo, texto, categoria }
     // Lote G1: tutorial ativo na primeira partida
@@ -277,6 +278,7 @@ function acaoAvancar(state) {
   const passo = passoEmDias(state.fase, state.velocidade);
   const rng = createRng(state.rngState);
   let novo = state;
+  let climaHoje = state.climaHoje || null;
 
   for (let i = 0; i < passo; i++) {
     const antes = novo.tempo;
@@ -285,6 +287,7 @@ function acaoAvancar(state) {
     // Sorteia clima + mm de chuva do dia (Lote C)
     const climaDia = sortearClimaDia(rng, novo.tempo.mes);
     const mmDia = sortearMmDia(rng, climaDia);
+    climaHoje = { tipo: climaDia, mm: mmDia };
 
     // Processa efeitos pendentes (Lote A) + recuperação (Lote B) + ciclo (Lote C)
     const novosTalhoes = [];
@@ -437,7 +440,7 @@ function acaoAvancar(state) {
     }
   }
 
-  return { ...novo, rngState: rng.getState() };
+  return { ...novo, rngState: rng.getState(), climaHoje };
 }
 
 function finalizarSecagem(state) {
