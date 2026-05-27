@@ -86,6 +86,12 @@ import { MARCOS } from "../data/marcos.js";
 import { MISSOES_INICIAIS, missaoPorId, infoMissao, proximaMissao } from "../data/missoes.js";
 import { leilaoAberto, faixaMultiplicador, classificacaoLeilao } from "../data/leilao.js";
 import { festaDoDia } from "../data/festas.js";
+import {
+  ATER_PRIMEIRA_VISITA,
+  ATER_INTERVALO_DIAS,
+  cursoPorId,
+  proximoCurso,
+} from "../data/ater.js";
 import { PARAMS_MERCADO } from "../data/mercado.js";
 import { valorLote } from "../logic/precos.js";
 import {
@@ -169,7 +175,15 @@ export function novaPartida(modo, perfil) {
     missoes: { ativas: [...MISSOES_INICIAIS], completadas: {} },
     // Festa cultural com efeito temporário (ex.: desconto em insumos)
     festaAtiva: null,
+    // Perks de capacitação (ATER) + agenda de visitas
+    perks: {},
+    ater: { proximaVisitaDia: ATER_PRIMEIRA_VISITA, cursoOferecido: null, cursosFeitos: {} },
   };
+}
+
+// Helper de perk.
+function temPerk(state, id) {
+  return !!state.perks?.[id];
 }
 
 // Verifica todos os marcos. Se algum passou a satisfazer a condição
@@ -550,6 +564,29 @@ function acaoAvancar(state) {
       }
     }
 
+    // ATER: visita periódica da extensão rural com oferta de curso.
+    if (!novo.ater) {
+      novo = {
+        ...novo,
+        ater: { proximaVisitaDia: novo.tempo.totalDias + ATER_PRIMEIRA_VISITA, cursoOferecido: null, cursosFeitos: {} },
+      };
+    }
+    if (novo.tempo.totalDias >= novo.ater.proximaVisitaDia) {
+      const ater = { ...novo.ater, proximaVisitaDia: novo.ater.proximaVisitaDia + ATER_INTERVALO_DIAS };
+      if (!ater.cursoOferecido) {
+        const prox = proximoCurso(ater.cursosFeitos, nivelPorXp(novo.xp).nivel);
+        if (prox) {
+          ater.cursoOferecido = prox;
+          const c = cursoPorId(prox);
+          novo = comMensagem({ ...novo, ater }, `🧑‍🏫 Agente da EMATER visitou! Curso disponível: ${c.icone} ${c.nome}.`);
+        } else {
+          novo = { ...novo, ater };
+        }
+      } else {
+        novo = { ...novo, ater };
+      }
+    }
+
     // Virou ano? envelhece todos os talhões em 1 ano.
     if (novo.tempo.ano > antes.ano) {
       novo = {
@@ -898,7 +935,8 @@ function acaoVenderLote(state, { loteId }) {
   if (!lote) return state;
   // Lote H3 + H6: aplica multiplicador de mercado (com floor se coop)
   const precoComCert = precoComCertificacoes(lote.precoPorSaca, state.certificacoes);
-  const precoFinal = Math.round(precoComCert * mercadoEfetivo(state));
+  const fatorGestao = temPerk(state, "gestao") ? 1.05 : 1;
+  const precoFinal = Math.round(precoComCert * mercadoEfetivo(state) * fatorGestao);
   const valor = lote.sacas * precoFinal;
   // Lote G4: atualiza melhor lote + contagem
   const stats = state.stats || {};
@@ -1139,7 +1177,8 @@ function acaoInstalarIrrigacao(state, { talhaoId }) {
     return comMensagem(state, `❌ Talhão já é irrigado.`);
   }
   const custo = Math.round(
-    IRRIGACAO.custoBase + IRRIGACAO.custoPorHectare * talhao.hectares
+    (IRRIGACAO.custoBase + IRRIGACAO.custoPorHectare * talhao.hectares) *
+      (temPerk(state, "irrigacao") ? 0.8 : 1)
   );
   if (!podePagar(state.caixa, custo)) {
     return comMensagem(state, `❌ Caixa insuficiente pra irrigação (R$${custo.toLocaleString("pt-BR")}).`);
@@ -1154,22 +1193,24 @@ function acaoInstalarIrrigacao(state, { talhaoId }) {
 }
 
 function acaoAmostrar(state, { talhaoId }) {
-  if (!podePagar(state.caixa, CUSTO_AMOSTRAGEM)) {
-    return comMensagem(state, `❌ Caixa insuficiente pra amostragem (R$${CUSTO_AMOSTRAGEM}).`);
+  const custo = temPerk(state, "mip") ? 0 : CUSTO_AMOSTRAGEM;
+  if (!podePagar(state.caixa, custo)) {
+    return comMensagem(state, `❌ Caixa insuficiente pra amostragem (R$${custo}).`);
   }
   const talhao = state.talhoes.find((t) => t.id === talhaoId);
   if (!talhao) return state;
   const ativas = Object.entries(talhao.pragas || {});
   const novoState = {
     ...trocarTalhao(state, talhaoId, amostrarTalhao),
-    caixa: state.caixa - CUSTO_AMOSTRAGEM,
+    caixa: state.caixa - custo,
   };
+  const tag = custo === 0 ? "grátis · MIP" : `-R$${custo}`;
   if (ativas.length === 0) {
-    return comMensagem(novoState, `🔍 Amostragem: nenhuma praga detectada (-R$${CUSTO_AMOSTRAGEM}).`);
+    return comMensagem(novoState, `🔍 Amostragem: nenhuma praga detectada (${tag}).`);
   }
   return comMensagem(
     novoState,
-    `🔍 Amostragem revelou ${ativas.length} ${ativas.length === 1 ? "praga" : "pragas"} (-R$${CUSTO_AMOSTRAGEM}).`
+    `🔍 Amostragem revelou ${ativas.length} ${ativas.length === 1 ? "praga" : "pragas"} (${tag}).`
   );
 }
 
@@ -1201,15 +1242,16 @@ function acaoEsqueletar(state, { talhaoId }) {
       `❌ Talhão não pode ser esqueletado (precisa ≥${ESQUELETAMENTO.idadeMinima} anos, fora de recuperação).`
     );
   }
-  if (!podePagar(state.caixa, ESQUELETAMENTO.custo)) {
-    return comMensagem(state, `❌ Caixa insuficiente (R$${ESQUELETAMENTO.custo}).`);
+  const custo = Math.round(ESQUELETAMENTO.custo * (temPerk(state, "poda") ? 0.7 : 1));
+  if (!podePagar(state.caixa, custo)) {
+    return comMensagem(state, `❌ Caixa insuficiente (R$${custo}).`);
   }
   return comMensagem(
     {
       ...trocarTalhao(state, talhaoId, iniciarEsqueletamento),
-      caixa: state.caixa - ESQUELETAMENTO.custo,
+      caixa: state.caixa - custo,
     },
-    `✂️ Esqueletamento iniciado: -R$${ESQUELETAMENTO.custo}. Volta em ~1 ano.`
+    `✂️ Esqueletamento iniciado: -R$${custo}. Volta em ~1 ano.`
   );
 }
 
@@ -1222,28 +1264,48 @@ function acaoRecepar(state, { talhaoId }) {
       `❌ Talhão não pode ser recepado (precisa ≥${RECEPA.idadeMinima} anos, fora de recuperação).`
     );
   }
-  if (!podePagar(state.caixa, RECEPA.custo)) {
-    return comMensagem(state, `❌ Caixa insuficiente (R$${RECEPA.custo}).`);
+  const custo = Math.round(RECEPA.custo * (temPerk(state, "poda") ? 0.7 : 1));
+  if (!podePagar(state.caixa, custo)) {
+    return comMensagem(state, `❌ Caixa insuficiente (R$${custo}).`);
   }
   return comMensagem(
     {
       ...trocarTalhao(state, talhaoId, iniciarRecepa),
-      caixa: state.caixa - RECEPA.custo,
+      caixa: state.caixa - custo,
     },
-    `🪓 Recepa iniciada: -R$${RECEPA.custo}. Volta em ~2 anos.`
+    `🪓 Recepa iniciada: -R$${custo}. Volta em ~2 anos.`
   );
+}
+
+function acaoFazerCurso(state) {
+  const ater = state.ater;
+  if (!ater?.cursoOferecido) return state;
+  const c = cursoPorId(ater.cursoOferecido);
+  if (!c) return { ...state, ater: { ...ater, cursoOferecido: null } };
+  let novo = {
+    ...state,
+    perks: { ...(state.perks || {}), [c.id]: true },
+    ater: {
+      ...ater,
+      cursoOferecido: null,
+      cursosFeitos: { ...ater.cursosFeitos, [c.id]: true },
+    },
+  };
+  novo = comMensagem(novo, `🎓 Curso concluído: ${c.nome}! ${c.desc}`);
+  return ganharXp(novo, c.xp);
 }
 
 function acaoVenderTudo(state) {
   if (state.estoqueSacas.length === 0) return state;
   // Lote F + H3 + H6: prêmio das certs + multiplicador de mercado (com floor coop)
   const merc = mercadoEfetivo(state);
+  const fatorGestao = temPerk(state, "gestao") ? 1.05 : 1;
   const total = state.estoqueSacas.reduce(
     (acc, l) =>
       acc +
       l.sacas *
         Math.round(
-          precoComCertificacoes(l.precoPorSaca, state.certificacoes) * merc
+          precoComCertificacoes(l.precoPorSaca, state.certificacoes) * merc * fatorGestao
         ),
     0
   );
@@ -1373,6 +1435,8 @@ function reducerCore(state, action) {
       return acaoFiliarCooperativa(state);
     case "ADERIR_CERTIFICACAO":
       return acaoAderirCertificacao(state, action.payload);
+    case "FAZER_CURSO":
+      return acaoFazerCurso(state);
     case "SET_VELOCIDADE":
       return state ? { ...state, velocidade: action.payload.dias } : state;
     case "REINICIAR_TUTORIAL":

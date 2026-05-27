@@ -17,8 +17,12 @@ export function mercadoEfetivo(state) {
 }
 
 export function precoFinalSaca(state, lote) {
+  // Perk "gestao" (curso Sebrae) = +5% no preço de venda.
+  const fatorGestao = state.perks?.gestao ? 1.05 : 1;
   return Math.round(
-    precoComCertificacoes(lote.precoPorSaca, state.certificacoes) * mercadoEfetivo(state)
+    precoComCertificacoes(lote.precoPorSaca, state.certificacoes) *
+      mercadoEfetivo(state) *
+      fatorGestao
   );
 }
 
