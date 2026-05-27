@@ -44,8 +44,20 @@ export function avancarDias(tempo, n) {
 }
 
 // Decide quantos dias o botão "Avançar" deve pular, dada a fase atual.
-export function passoEmDias(fase) {
-  return FASES_DIARIAS.includes(fase) ? 1 : 7;
+// Fases sensíveis (secagem) são sempre diárias; fora delas, usa a
+// velocidade configurada pelo jogador (padrão 7 = 1 semana).
+export function passoEmDias(fase, velocidade = 7) {
+  return FASES_DIARIAS.includes(fase) ? 1 : velocidade || 7;
+}
+
+// Rótulo do botão "Avançar" conforme fase + velocidade.
+export function rotuloPasso(fase, velocidade = 7) {
+  if (FASES_DIARIAS.includes(fase)) return "1 dia";
+  const n = velocidade || 7;
+  if (n === 7) return "1 semana";
+  if (n === 14) return "2 semanas";
+  if (n === 30) return "1 mês";
+  return `${n} dias`;
 }
 
 export function estaEpocaColheita(tempo) {

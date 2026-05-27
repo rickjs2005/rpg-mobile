@@ -19,6 +19,7 @@ import { VARIEDADES, METODOS_POS } from "../data/cafe.js";
 import { CERTIFICACOES } from "../data/economia.js";
 import { MARCOS, CATEGORIAS_MARCOS } from "../data/marcos.js";
 import { saudeFazenda } from "../logic/alertas.js";
+import { valorLote } from "../logic/precos.js";
 
 const SAUDE_LABEL = { boa: "🟢 Boa", atencao: "🟡 Atenção", ruim: "🔴 Ruim" };
 
@@ -45,8 +46,9 @@ export default function Dashboard({ visible, onClose }) {
     .filter(Boolean);
 
   const sacasEstoque = state.estoqueSacas.reduce((acc, l) => acc + l.sacas, 0);
+  // Mesmo preço do Mercado (cert × índice de mercado) = o que seria creditado.
   const valorEstoque = state.estoqueSacas.reduce(
-    (acc, l) => acc + l.sacas * l.precoPorSaca,
+    (acc, l) => acc + valorLote(state, l),
     0
   );
 
@@ -69,7 +71,9 @@ export default function Dashboard({ visible, onClose }) {
     >
       <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
         <View style={styles.header}>
-          <Text style={styles.titulo}>📊 Painel da fazenda</Text>
+          <Text style={styles.titulo} numberOfLines={1}>
+            📊 {state.perfil?.fazenda || "Painel da fazenda"}
+          </Text>
           <Pressable onPress={onClose} style={styles.fecharBtn}>
             <Text style={styles.fecharTxt}>✕</Text>
           </Pressable>
@@ -81,6 +85,16 @@ export default function Dashboard({ visible, onClose }) {
         >
           {/* Visão geral */}
           <Section titulo="Visão Geral">
+            {state.perfil && (
+              <Row label="Produtor">
+                <Text style={styles.valor}>{state.perfil.produtor}</Text>
+              </Row>
+            )}
+            {state.perfil && (
+              <Row label="Região">
+                <Text style={styles.valor}>{state.perfil.regiao}</Text>
+              </Row>
+            )}
             <Row label="Caixa atual">
               <Text style={[styles.valor, state.caixa < 0 ? styles.vermelho : styles.verde]}>
                 R$ {state.caixa.toLocaleString("pt-BR")}

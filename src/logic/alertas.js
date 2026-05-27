@@ -31,10 +31,12 @@ export function calcularProximoEvento(state) {
       t.estado === "normal" &&
       (t.ciclo?.floradaPrincipalOk || !t.ciclo)
   );
-  if (naEpoca && formados.length > 0) {
+  // Pra "colheita disponível", ignora talhões cuja safra já foi colhida.
+  const colhiveis = formados.filter((t) => !t.ciclo?.safraColhida);
+  if (naEpoca && colhiveis.length > 0) {
     return {
       icone: "🍒",
-      texto: `Colheita disponível em ${formados.length} talhão(ões)`,
+      texto: `Colheita disponível em ${colhiveis.length} talhão(ões)`,
       nivel: "acao",
     };
   }
@@ -158,6 +160,20 @@ export function calcularAlertas(state) {
   }
 
   return alertas;
+}
+
+/* ---------- Rótulo curto da estação/fase atual (pro menu) ---------- */
+// Usado no resumo do "Continuar". Prioriza as fases ativas; senão,
+// deriva da janela do calendário do café.
+export function rotuloEstacao(state) {
+  if (!state) return "";
+  if (state.fase === "secagem") return "🌡️ Secagem";
+  if (state.fase === "aguardando_pos") return "🍒 Pós-colheita";
+  const m = state.tempo?.mes ?? 1;
+  if (m >= 5 && m <= 8) return "🍒 Colheita";
+  if (m === 9 || m === 10) return "🌸 Florada";
+  if (m >= 1 && m <= 3) return "💧 Granação";
+  return "🌱 Vegetativo";
 }
 
 /* ---------- Saúde geral da fazenda ---------- */

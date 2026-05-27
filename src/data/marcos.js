@@ -201,12 +201,11 @@ export const MARCOS = [
     desc: "Fez sua primeira recepa de lavoura.",
     icone: "🪓",
     categoria: "Manejo",
+    // Só conta recepa de verdade: a janela de recuperação dura ~2 anos e o
+    // marco é verificado a cada ação, então pega o evento com folga. (A
+    // condição antiga também disparava com qualquer lavoura jovem adubada.)
     condicao: (s) =>
-      s.talhoes.some(
-        (t) =>
-          t.estado === "recuperando_recepa" ||
-          (t.idadeAnos <= 3 && t.sanidade >= 0.8 && t.variedadeId)
-      ),
+      s.talhoes.some((t) => t.estado === "recuperando_recepa"),
   },
 
   /* ---------- Tempo ---------- */

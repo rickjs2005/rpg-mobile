@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from "react-native";
 import { useJogo } from "../hooks/useJogo.jsx";
-import { formatarData } from "../logic/tempo.js";
+import { formatarData, rotuloPasso } from "../logic/tempo.js";
 import {
   calcularProximoEvento,
   calcularAlertas,
@@ -27,7 +27,7 @@ const SAUDE_ICONE = {
 
 export default function HUD() {
   const { state, dispatch } = useJogo();
-  const passoLabel = state.fase === "secagem" ? "1 dia" : "1 semana";
+  const passoLabel = rotuloPasso(state.fase, state.velocidade);
 
   const proximo = calcularProximoEvento(state);
   const alertas = calcularAlertas(state);
@@ -37,6 +37,18 @@ export default function HUD() {
 
   return (
     <View style={styles.hud}>
+      {/* Linha 0: identidade da fazenda (personalização da tela de início) */}
+      {state.perfil && (
+        <View style={styles.fazendaLinha}>
+          <Text style={styles.fazendaNome} numberOfLines={1}>
+            🏡 {state.perfil.fazenda}
+          </Text>
+          <Text style={styles.fazendaProd} numberOfLines={1}>
+            {state.perfil.produtor}
+          </Text>
+        </View>
+      )}
+
       {/* Linha 1: Caixa + Data + Saúde */}
       <View style={styles.linhaInfo}>
         <View style={styles.bloco}>
@@ -133,6 +145,23 @@ const styles = StyleSheet.create({
     borderBottomColor: tema.bg3,
     padding: 10,
     gap: 8,
+  },
+  fazendaLinha: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    gap: 8,
+  },
+  fazendaNome: {
+    color: tema.madeira,
+    fontSize: 14,
+    fontWeight: "800",
+    flexShrink: 1,
+  },
+  fazendaProd: {
+    color: tema.textoDim,
+    fontSize: 12,
+    fontWeight: "600",
   },
   linhaInfo: {
     flexDirection: "row",

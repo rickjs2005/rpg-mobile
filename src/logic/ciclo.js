@@ -28,6 +28,7 @@ export function cicloVazio() {
     floradaPrincipalOk: false,
     numFloradas: 0,
     chuvaGranacao: 0,
+    safraColhida: false, // trava: 1 colheita por ano-safra (reset em 1/set)
   };
 }
 
@@ -40,6 +41,7 @@ export function cicloProduzindoSafra() {
     floradaPrincipalOk: true,
     numFloradas: 1,
     chuvaGranacao: 250, // boa granação
+    safraColhida: false,
   };
 }
 
@@ -87,7 +89,13 @@ export function avancarCicloFenologicoDia(talhao, mmDia, tempo, podeAcumular) {
   return {
     talhao: {
       ...talhao,
-      ciclo: { diasSemChuva, floradaPrincipalOk, numFloradas, chuvaGranacao },
+      ciclo: {
+        diasSemChuva,
+        floradaPrincipalOk,
+        numFloradas,
+        chuvaGranacao,
+        safraColhida: ciclo.safraColhida || false,
+      },
     },
     eventos,
   };
