@@ -48,7 +48,7 @@ function corSanidade(pct) {
   return "#7bd16a";
 }
 
-export default function PlotTalhao({ talhao, mes, onPress }) {
+export default function PlotTalhao({ talhao, mes, onPress, animar = true }) {
   const variedade = talhao.variedadeId ? VARIEDADES[talhao.variedadeId] : null;
   const dots = coresDots(talhao, mes);
   const sanPct = Math.round((talhao.sanidade || 0) * 100);
@@ -57,7 +57,7 @@ export default function PlotTalhao({ talhao, mes, onPress }) {
   const temPragas = Object.keys(talhao.pragas || {}).length > 0;
   const pronto = formado && !recup && estaEpocaColheita({ mes }) && !talhao.ciclo?.safraColhida;
   const atencao = talhao.variedadeId && !recup && (sanPct < 40 || pronto);
-  const balanca = talhao.variedadeId && !recup; // folhagem balança ao vento
+  const balanca = talhao.variedadeId && !recup && animar; // folhagem balança ao vento
   const formando = talhao.variedadeId && talhao.idadeAnos < ANOS_FORMACAO;
 
   // Vento: oscilação suave das mudas.

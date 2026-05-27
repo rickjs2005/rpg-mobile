@@ -83,6 +83,9 @@ import { VARIEDADES, METODOS_POS } from "../data/cafe.js";
 import { INSUMOS, EQUIPAMENTOS, CERTIFICACOES, EQUIPE, TULHAS, TULHA_PROGRESSAO } from "../data/economia.js";
 import { PASSOS_TUTORIAL } from "../data/tutorial.js";
 import { MARCOS } from "../data/marcos.js";
+import { MISSOES_INICIAIS, missaoPorId, infoMissao, proximaMissao } from "../data/missoes.js";
+import { leilaoAberto, faixaMultiplicador, classificacaoLeilao } from "../data/leilao.js";
+import { valorLote } from "../logic/precos.js";
 import {
   nivelPorXp,
   xpVender,
@@ -160,6 +163,8 @@ export function novaPartida(modo, perfil) {
     },
     // Lote G7: marcos desbloqueados
     marcos: {},
+    // Missões/contratos ativos (3) + concluídos
+    missoes: { ativas: [...MISSOES_INICIAIS], completadas: {} },
   };
 }
 
@@ -189,6 +194,40 @@ function verificarMarcos(state) {
   // Bônus de XP por cada marco recém-desbloqueado (1 evento = 1 marco).
   if (eventos.length > 0) novo = ganharXp(novo, eventos.length * XP_MARCO);
   return novo;
+}
+
+// Verifica missões ativas; conclui as cumpridas (recompensa caixa+xp) e puxa
+// a próxima do pool pro slot. Auto-inicializa em saves antigos.
+function verificarMissoes(state) {
+  if (!state) return state;
+  let novo = state;
+  let mudou = false;
+  if (!novo.missoes) {
+    novo = { ...novo, missoes: { ativas: [...MISSOES_INICIAIS], completadas: {} } };
+    mudou = true; // inicialização (save antigo) já é uma mudança a persistir
+  }
+  const ativas = [...novo.missoes.ativas];
+  let completadas = novo.missoes.completadas;
+  for (let i = 0; i < ativas.length; i++) {
+    const def = missaoPorId(ativas[i]);
+    if (!def || completadas[def.id]) continue;
+    if (!infoMissao(def, novo).completa) continue;
+    if (completadas === novo.missoes.completadas) completadas = { ...completadas };
+    completadas[def.id] = true;
+    mudou = true;
+    const rec = def.recompensa || {};
+    if (rec.caixa) novo = { ...novo, caixa: (novo.caixa || 0) + rec.caixa };
+    novo = comMensagem(
+      novo,
+      `🎯 Missão concluída: ${def.titulo}!` +
+        (rec.caixa ? ` +R$${rec.caixa.toLocaleString("pt-BR")}` : "") +
+        (rec.xp ? ` +${rec.xp} XP` : "")
+    );
+    if (rec.xp) novo = ganharXp(novo, rec.xp);
+    ativas[i] = proximaMissao(ativas, completadas);
+  }
+  if (!mudou) return state;
+  return { ...novo, missoes: { ativas: ativas.filter(Boolean), completadas } };
 }
 
 // Núcleo do tracking: aplica um delta de caixa nos stats (receita/despesa
@@ -857,6 +896,54 @@ function acaoVenderLote(state, { loteId }) {
   return ganharXp(vendido, xpVender(lote.sacas));
 }
 
+function acaoLeiloar(state, { loteId }) {
+  const lote = state.estoqueSacas.find((l) => l.id === loteId);
+  if (!lote) return state;
+  if (!lote.microlote) {
+    return comMensagem(state, `❌ Só microlotes (SCA ≥ 85) entram no leilão.`);
+  }
+  if (!leilaoAberto(state.tempo.mes)) {
+    return comMensagem(state, `❌ O leilão de especiais abre na primavera (set–nov).`);
+  }
+  const rng = createRng(state.rngState);
+  const faixa = faixaMultiplicador(lote.sca || 85);
+  const frac = rng.next();
+  const mult = faixa.min + frac * (faixa.max - faixa.min);
+  const valor = Math.round(valorLote(state, lote) * mult);
+  const rank = classificacaoLeilao(frac);
+
+  // Stats (a receita em si é contabilizada pelo diff de caixa no wrapper).
+  const stats = state.stats || {};
+  const ano = state.tempo.ano;
+  const porAno = { ...(stats.porAno || {}) };
+  if (!porAno[ano]) porAno[ano] = { receita: 0, despesa: 0, sacas: 0 };
+  porAno[ano] = { ...porAno[ano], sacas: (porAno[ano].sacas || 0) + lote.sacas };
+  const ehMelhor = !stats.melhorLote || valor > (stats.melhorLote.valor || 0);
+  const melhor = ehMelhor
+    ? { sca: lote.sca || 0, classe: lote.classeNome, precoPorSaca: Math.round(valor / lote.sacas), sacas: lote.sacas, valor, variedadeId: lote.variedadeId, ano }
+    : stats.melhorLote;
+
+  let novo = {
+    ...state,
+    rngState: rng.getState(),
+    caixa: state.caixa + valor,
+    estoqueSacas: state.estoqueSacas.filter((l) => l.id !== loteId),
+    stats: {
+      ...stats,
+      sacasVendidasTotal: (stats.sacasVendidasTotal || 0) + lote.sacas,
+      vendasCount: (stats.vendasCount || 0) + 1,
+      melhorLote: melhor,
+      porAno,
+    },
+  };
+  novo = comMensagem(
+    novo,
+    `🏆 ${rank} no ${"Leilão de Especiais"}! ${lote.sacas} sacas (SCA ${lote.sca}) a ${mult.toFixed(1)}× — +R$${valor.toLocaleString("pt-BR")}`
+  );
+  // Leilão dá XP em dobro (evento de prestígio).
+  return ganharXp(novo, xpVender(lote.sacas) * 2);
+}
+
 function acaoAderirCertificacao(state, { certId }) {
   const def = CERTIFICACOES[certId];
   if (!def) return state;
@@ -1180,8 +1267,10 @@ export function reducer(state, action) {
     : atualizarStatsCaixa(state, novo);
   // Lote G7: verifica marcos a cada ação
   const comMarcos = verificarMarcos(comStats);
+  // Missões: conclui e recompensa as cumpridas
+  const comMissoes = verificarMissoes(comMarcos);
   // Lote G1: avança tutorial após cada ação se condição cumprida
-  return avancarTutorialSeNecessario(comMarcos, action);
+  return avancarTutorialSeNecessario(comMissoes, action);
 }
 
 function reducerCore(state, action) {
@@ -1210,6 +1299,8 @@ function reducerCore(state, action) {
       return acaoIniciarPosColheita(state, action.payload);
     case "VENDER_LOTE":
       return acaoVenderLote(state, action.payload);
+    case "LEILOAR":
+      return acaoLeiloar(state, action.payload);
     case "VENDER_TUDO":
       return acaoVenderTudo(state);
     case "ESQUELETAR":
