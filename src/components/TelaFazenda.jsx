@@ -14,6 +14,7 @@ import { formatarData } from "../logic/tempo.js";
 import { climaDescreve } from "../logic/clima.js";
 import { resumoFazenda } from "../logic/resumoFazenda.js";
 import { dicasManejo } from "../logic/dicasManejo.js";
+import { missaoPorId, infoMissao } from "../data/missoes.js";
 import { estaEmRecuperacao } from "../logic/talhao.js";
 import { UMIDADE_INICIAL, UMIDADE_PRONTA } from "../logic/pos_colheita.js";
 import { CUSTO_AMOSTRAGEM, ANOS_FORMACAO } from "../data/constantes.js";
@@ -140,6 +141,39 @@ export default function TelaFazenda({ setTela }) {
         )}
       </Painel>
 
+      {/* Missões / metas ativas */}
+      {(state.missoes?.ativas?.length || 0) > 0 && (
+        <Painel icone="🎯" titulo="Metas">
+          <View style={styles.missoesLista}>
+            {state.missoes.ativas.map((id) => {
+              const def = missaoPorId(id);
+              if (!def) return null;
+              const info = infoMissao(def, state);
+              return (
+                <View key={id} style={styles.missaoItem}>
+                  <Text style={styles.missaoIcone}>{def.icone}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.missaoTit}>{def.titulo}</Text>
+                    <Text style={styles.missaoDesc}>{def.desc}</Text>
+                    <View style={styles.missaoBarra}>
+                      <View style={[styles.missaoFill, { width: `${Math.round(info.frac * 100)}%` }]} />
+                    </View>
+                  </View>
+                  <View style={styles.missaoDir}>
+                    <Text style={styles.missaoProg}>
+                      {Math.min(info.atual, info.alvo)}/{info.alvo}
+                    </Text>
+                    <Text style={styles.missaoRec}>
+                      {def.recompensa.caixa ? `+R$${def.recompensa.caixa}\n` : ""}+{def.recompensa.xp}xp
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </Painel>
+      )}
+
       {/* Manejo recomendado — agrônomo virtual (educativo) */}
       <Painel icone="👨‍🌾" titulo="Manejo recomendado">
         <View style={styles.dicasLista}>
@@ -257,6 +291,7 @@ export default function TelaFazenda({ setTela }) {
               key={t.id}
               talhao={t}
               mes={state.tempo.mes}
+              animar={state.talhoes.length <= 8}
               onPress={() => setTalhaoModalId(t.id)}
             />
           ))}
@@ -401,6 +436,25 @@ const styles = StyleSheet.create({
   toggleAtivo: { backgroundColor: tema.bg2, borderWidth: 1, borderColor: tema.dourado },
   toggleTxt: { color: tema.textoDim, fontSize: 12, fontWeight: "700" },
   toggleTxtAtivo: { color: tema.dourado },
+
+  /* Missões / metas */
+  missoesLista: { gap: 10 },
+  missaoItem: { flexDirection: "row", alignItems: "center", gap: 10 },
+  missaoIcone: { fontSize: 22, width: 28, textAlign: "center" },
+  missaoTit: { color: tema.texto, fontSize: 14, fontWeight: "800" },
+  missaoDesc: { color: tema.textoDim, fontSize: 11, marginBottom: 4 },
+  missaoBarra: {
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: tema.bg3,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: tema.linha,
+  },
+  missaoFill: { height: "100%", borderRadius: 999, backgroundColor: tema.verde },
+  missaoDir: { alignItems: "flex-end", minWidth: 56 },
+  missaoProg: { color: tema.texto, fontSize: 13, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  missaoRec: { color: tema.dourado, fontSize: 9, fontWeight: "700", textAlign: "right" },
 
   /* Manejo recomendado (dicas educativas) */
   dicasLista: { gap: 10 },

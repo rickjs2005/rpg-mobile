@@ -165,6 +165,19 @@ export default function CardTalhao({ talhao }) {
               <Text style={styles.chipTxt}>❌ Sem florada</Text>
             </View>
           )}
+          {/* Nutrição de florada (adubação de choque set-nov) */}
+          {talhao.idadeAnos >= ANOS_FORMACAO && !emRecuperacao && (
+            <View
+              style={[
+                styles.chip,
+                talhao.ciclo?.nutrido ? styles.chipAlta : styles.chipBaixa,
+              ]}
+            >
+              <Text style={styles.chipTxt}>
+                {talhao.ciclo?.nutrido ? "🌱 Florada adubada" : "⚠️ Falta adubo de florada"}
+              </Text>
+            </View>
+          )}
           {(talhao.ciclo?.chuvaGranacao || 0) > 0 && (
             <View
               style={[

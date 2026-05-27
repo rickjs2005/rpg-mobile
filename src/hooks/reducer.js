@@ -83,6 +83,7 @@ import { VARIEDADES, METODOS_POS } from "../data/cafe.js";
 import { INSUMOS, EQUIPAMENTOS, CERTIFICACOES, EQUIPE, TULHAS, TULHA_PROGRESSAO } from "../data/economia.js";
 import { PASSOS_TUTORIAL } from "../data/tutorial.js";
 import { MARCOS } from "../data/marcos.js";
+import { MISSOES_INICIAIS, missaoPorId, infoMissao, proximaMissao } from "../data/missoes.js";
 import {
   nivelPorXp,
   xpVender,
@@ -160,6 +161,8 @@ export function novaPartida(modo, perfil) {
     },
     // Lote G7: marcos desbloqueados
     marcos: {},
+    // Missões/contratos ativos (3) + concluídos
+    missoes: { ativas: [...MISSOES_INICIAIS], completadas: {} },
   };
 }
 
@@ -189,6 +192,40 @@ function verificarMarcos(state) {
   // Bônus de XP por cada marco recém-desbloqueado (1 evento = 1 marco).
   if (eventos.length > 0) novo = ganharXp(novo, eventos.length * XP_MARCO);
   return novo;
+}
+
+// Verifica missões ativas; conclui as cumpridas (recompensa caixa+xp) e puxa
+// a próxima do pool pro slot. Auto-inicializa em saves antigos.
+function verificarMissoes(state) {
+  if (!state) return state;
+  let novo = state;
+  let mudou = false;
+  if (!novo.missoes) {
+    novo = { ...novo, missoes: { ativas: [...MISSOES_INICIAIS], completadas: {} } };
+    mudou = true; // inicialização (save antigo) já é uma mudança a persistir
+  }
+  const ativas = [...novo.missoes.ativas];
+  let completadas = novo.missoes.completadas;
+  for (let i = 0; i < ativas.length; i++) {
+    const def = missaoPorId(ativas[i]);
+    if (!def || completadas[def.id]) continue;
+    if (!infoMissao(def, novo).completa) continue;
+    if (completadas === novo.missoes.completadas) completadas = { ...completadas };
+    completadas[def.id] = true;
+    mudou = true;
+    const rec = def.recompensa || {};
+    if (rec.caixa) novo = { ...novo, caixa: (novo.caixa || 0) + rec.caixa };
+    novo = comMensagem(
+      novo,
+      `🎯 Missão concluída: ${def.titulo}!` +
+        (rec.caixa ? ` +R$${rec.caixa.toLocaleString("pt-BR")}` : "") +
+        (rec.xp ? ` +${rec.xp} XP` : "")
+    );
+    if (rec.xp) novo = ganharXp(novo, rec.xp);
+    ativas[i] = proximaMissao(ativas, completadas);
+  }
+  if (!mudou) return state;
+  return { ...novo, missoes: { ativas: ativas.filter(Boolean), completadas } };
 }
 
 // Núcleo do tracking: aplica um delta de caixa nos stats (receita/despesa
@@ -1180,8 +1217,10 @@ export function reducer(state, action) {
     : atualizarStatsCaixa(state, novo);
   // Lote G7: verifica marcos a cada ação
   const comMarcos = verificarMarcos(comStats);
+  // Missões: conclui e recompensa as cumpridas
+  const comMissoes = verificarMissoes(comMarcos);
   // Lote G1: avança tutorial após cada ação se condição cumprida
-  return avancarTutorialSeNecessario(comMarcos, action);
+  return avancarTutorialSeNecessario(comMissoes, action);
 }
 
 function reducerCore(state, action) {
