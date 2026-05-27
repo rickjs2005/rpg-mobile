@@ -1,400 +1,375 @@
-import { View, Text, StyleSheet } from "react-native";
+/* ============================================================
+   TELA LOJA — "Loja de Elite" (design do Stitch / Hay Day).
+   Painéis madeira chunky, ícones 3D em círculo, grades.
+   VISUAL do Stitch + DADOS reais do jogo (data/economia, constantes).
+   Estados dinâmicos: sem caixa → desabilitado; adquirido → verde.
+   ============================================================ */
+
+import { View, Text, Image, StyleSheet } from "react-native";
 import { useJogo } from "../hooks/useJogo.jsx";
 import Botao from "./Botao.jsx";
-import CardEquipamento from "./CardEquipamento.jsx";
 import { tema } from "../styles/tema.js";
-import { INSUMOS, EQUIPAMENTOS, CERTIFICACOES, EQUIPE, TULHAS, TULHA_PROGRESSAO } from "../data/economia.js";
+import {
+  INSUMOS,
+  EQUIPAMENTOS,
+  CERTIFICACOES,
+  EQUIPE,
+  TULHAS,
+  TULHA_PROGRESSAO,
+} from "../data/economia.js";
 import { FUNCAFE, COOPERATIVA } from "../data/constantes.js";
 import { statusCertText } from "../logic/certificacoes.js";
 import { hectaresCobertura, folhaPagamentoMensal } from "../logic/equipe.js";
 import { limiteEmprestimo, calcularParcela } from "../logic/financiamento.js";
 
+/* ---------- Ilustrações 3D baixadas do Stitch ---------- */
+const IMG_INSUMO = {
+  adubo: require("../../assets/loja/adubo.png"),
+  calcario: require("../../assets/loja/calcario.png"),
+  defensivo: require("../../assets/loja/defensivo.png"),
+};
+const IMG_TRATOR = require("../../assets/loja/trator.png");
+const IMG_TULHA = require("../../assets/loja/tulha.png");
+const IMG_FUNCAFE = require("../../assets/loja/funcafe.png");
+
+const TERRENO_LABEL = {
+  plano: "🟩 Plano",
+  montanhoso: "⛰️ Ladeira",
+  qualquer: "↔ Qualquer",
+};
+
+const CERT_COR = {
+  rainforest: { bg: "#dcf3d3", borda: "#7fc97f", fg: "#2a691d" },
+  fairtrade: { bg: "#d6e8f5", borda: "#9cc4dc", fg: "#2f5e7e" },
+  organico: { bg: "#f7e6bf", borda: "#e0c277", fg: "#8a5a00" },
+};
+
+function beneficioEquip(eq) {
+  const e = eq.efeitos || {};
+  if (e.bonusRendimento) return `+${Math.round(e.bonusRendimento * 100)}% rendimento`;
+  if (e.bonusBebida) return `+${Math.round(e.bonusBebida * 100)}% bebida`;
+  if (e.secagemRapida) return "seca sem sol";
+  return "";
+}
+
+function Titulo({ icone, children }) {
+  return (
+    <Text style={styles.h3}>
+      {icone}  {children}
+    </Text>
+  );
+}
+
 export default function TelaLoja() {
   const { state, dispatch } = useJogo();
+  const filiado = !!state.cooperativa?.filiado;
 
   return (
     <View style={styles.container}>
-      {/* Cooperativa: aparece no topo se ainda não filiado, ou como banner se filiado */}
-      {state.cooperativa?.filiado ? (
-        <View style={[styles.cardInsumo, styles.cardAdquirida]}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.icone}>{COOPERATIVA.icone}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.nome}>{COOPERATIVA.nome} ✓ Cooperado</Text>
-              <Text style={styles.efeito}>
-                −{Math.round(COOPERATIVA.descontoInsumos * 100)}% em insumos · piso{" "}
-                {Math.round(COOPERATIVA.floorMercado * 100)}% no preço de venda · anuidade R${COOPERATIVA.anuidade}/ano
+      {/* ---------- 1. COOPERATIVA ---------- */}
+      {filiado ? (
+        <View style={[styles.painel, styles.coopBanner]}>
+          <Text style={styles.coopTitulo}>🤝 {COOPERATIVA.nome} · ✓ Cooperado</Text>
+          <Text style={styles.coopSub}>
+            −{Math.round(COOPERATIVA.descontoInsumos * 100)}% insumos · piso{" "}
+            {Math.round(COOPERATIVA.floorMercado * 100)}% na venda · anuidade R$
+            {COOPERATIVA.anuidade.toLocaleString("pt-BR")}/ano
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.painel}>
+          <Text style={styles.coopTitulo}>🤝 Cooperativa {COOPERATIVA.nome}</Text>
+          <Text style={styles.coopSub}>
+            Filie-se para ter benefícios exclusivos e proteção de preço.
+          </Text>
+          <View style={styles.coopChips}>
+            <View style={styles.coopChip}>
+              <Text style={styles.coopChipTxt}>
+                ％ −{Math.round(COOPERATIVA.descontoInsumos * 100)}% Insumos
+              </Text>
+            </View>
+            <View style={styles.coopChip}>
+              <Text style={styles.coopChipTxt}>
+                ✓ {Math.round(COOPERATIVA.floorMercado * 100)}% Preço Base
               </Text>
             </View>
           </View>
-        </View>
-      ) : (
-        <>
-          <Text style={styles.h2}>🏢 Cooperativa</Text>
-          <Text style={styles.dica}>
-            Filie-se à cooperativa: desconto em insumos + garantia de preço mínimo na venda (proteção contra mercado em queda).
-          </Text>
-          <View style={styles.cardInsumo}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.icone}>{COOPERATIVA.icone}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.nome}>{COOPERATIVA.nome}</Text>
-                <Text style={styles.efeito}>
-                  −{Math.round(COOPERATIVA.descontoInsumos * 100)}% insumos · piso{" "}
-                  {Math.round(COOPERATIVA.floorMercado * 100)}% no mercado
-                </Text>
-              </View>
+          <View style={styles.coopFooter}>
+            <View>
+              <Text style={styles.coopPreco}>
+                R$ {COOPERATIVA.custoAdesao.toLocaleString("pt-BR")}{" "}
+                <Text style={styles.coopPrecoSub}>adesão</Text>
+              </Text>
+              <Text style={styles.coopPrecoSub}>
+                + R$ {COOPERATIVA.anuidade.toLocaleString("pt-BR")}/ano
+              </Text>
             </View>
-            <Text style={styles.desc}>{COOPERATIVA.desc}</Text>
-            <View style={styles.cardFooter}>
-              <View>
-                <Text style={styles.preco}>
-                  R$ {COOPERATIVA.custoAdesao.toLocaleString("pt-BR")}
-                </Text>
-                <Text style={styles.precoAnual}>
-                  + anuidade R${COOPERATIVA.anuidade}/ano
-                </Text>
-              </View>
-              <Botao
-                pequeno
-                variante={state.caixa < COOPERATIVA.custoAdesao ? "fantasma" : "primario"}
-                disabled={state.caixa < COOPERATIVA.custoAdesao}
-                onPress={() => dispatch({ type: "FILIAR_COOPERATIVA" })}
-              >
-                Filiar-se
-              </Botao>
-            </View>
+            <Botao
+              variante={state.caixa < COOPERATIVA.custoAdesao ? "fantasma" : "primario"}
+              disabled={state.caixa < COOPERATIVA.custoAdesao}
+              onPress={() => dispatch({ type: "FILIAR_COOPERATIVA" })}
+            >
+              ⭐ Filiar-se
+            </Botao>
           </View>
-        </>
+        </View>
       )}
 
-      <Text style={styles.h2}>🌱 Insumos (consumíveis)</Text>
-      <Text style={styles.dica}>
-        Aplique nos talhões pra restaurar/manter a sanidade. Cada compra adiciona 1
-        unidade ao inventário.
-      </Text>
-
-      <View style={styles.grid}>
+      {/* ---------- 2. INSUMOS ---------- */}
+      <Titulo icone="🛍️">Insumos</Titulo>
+      <View style={styles.grid3}>
         {Object.entries(INSUMOS).map(([id, ins]) => {
           const semGrana = state.caixa < ins.custo;
           return (
-            <View key={id} style={styles.cardInsumo}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.icone}>{ins.icone}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.nome}>{ins.nome}</Text>
-                  <Text style={styles.efeito}>{ins.efeito}</Text>
-                </View>
+            <View key={id} style={[styles.tile, semGrana && styles.tileDim]}>
+              <View style={styles.iconeImg}>
+                <Image source={IMG_INSUMO[id]} style={styles.img} resizeMode="cover" />
               </View>
-              <Text style={styles.desc}>{ins.desc}</Text>
-              <View style={styles.cardFooter}>
-                <Text style={styles.preco}>R$ {ins.custo}</Text>
-                <Botao
-                  pequeno
-                  variante={semGrana ? "fantasma" : "primario"}
-                  disabled={semGrana}
-                  onPress={() =>
-                    dispatch({
-                      type: "COMPRAR_INSUMO",
-                      payload: { insumoId: id, qtd: 1 },
-                    })
-                  }
-                >
-                  Comprar
-                </Botao>
-              </View>
+              <Text style={styles.tileNome}>{ins.nome}</Text>
+              <Text style={styles.tileDesc} numberOfLines={2}>
+                {ins.efeito}
+              </Text>
+              <Text style={styles.tilePreco}>R$ {ins.custo}</Text>
+              <Botao
+                pequeno
+                fullWidth
+                variante={semGrana ? "fantasma" : "sucesso"}
+                disabled={semGrana}
+                onPress={() =>
+                  dispatch({ type: "COMPRAR_INSUMO", payload: { insumoId: id, qtd: 1 } })
+                }
+              >
+                Comprar
+              </Botao>
             </View>
           );
         })}
       </View>
 
-      <Text style={styles.h2}>🚜 Equipamentos</Text>
-      <Text style={styles.dica}>
-        Compra única. Reduzem energia e/ou aumentam rendimento/bebida. Cuidado: a regra
-        dos 15% manda — trator e colhedora sofrem no montanhoso; drone brilha lá.
-      </Text>
-
-      <View style={styles.grid}>
-        {Object.entries(EQUIPAMENTOS).map(([id, eq]) => (
-          <CardEquipamento key={id} equipId={id} equipamento={eq} />
-        ))}
-      </View>
-
-      <Text style={styles.h2}>🏗️ Infraestrutura — Tulha</Text>
-      <Text style={styles.dica}>
-        Limita quantas sacas você pode estocar. Sacas excedentes ao secar vão pra venda forçada SEM prêmios de certificação/mercado.
-      </Text>
-
-      {(() => {
-        const tulhaAtual = state.tulha || "pequena";
-        const idxAtual = TULHA_PROGRESSAO.indexOf(tulhaAtual);
-        return (
-          <View style={styles.grid}>
-            {TULHA_PROGRESSAO.map((tipo, i) => {
-              const t = TULHAS[tipo];
-              const adquirida = i <= idxAtual;
-              const isAtual = i === idxAtual;
-              const semGrana = state.caixa < t.custoUpgrade;
-              const podeUpgrade = i > idxAtual;
-              return (
-                <View
-                  key={tipo}
-                  style={[
-                    styles.cardInsumo,
-                    isAtual && styles.cardAdquirida,
-                  ]}
-                >
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.icone}>{t.icone}</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.nome}>
-                        {t.nome} {isAtual && "✓"}
-                      </Text>
-                      <Text style={styles.efeito}>{t.capacidade} sacas</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.desc}>{t.desc}</Text>
-                  {podeUpgrade && (
-                    <View style={styles.cardFooter}>
-                      <Text style={styles.preco}>
-                        R$ {t.custoUpgrade.toLocaleString("pt-BR")}
-                      </Text>
-                      <Botao
-                        pequeno
-                        variante={semGrana ? "fantasma" : "primario"}
-                        disabled={semGrana}
-                        onPress={() =>
-                          dispatch({
-                            type: "UPGRADE_TULHA",
-                            payload: { tipo },
-                          })
-                        }
-                      >
-                        Construir
-                      </Botao>
-                    </View>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        );
-      })()}
-
-      <Text style={styles.h2}>🏦 Funcafé (Financiamento)</Text>
-      <Text style={styles.dica}>
-        Crédito subsidiado do governo. {FUNCAFE.prazoMeses} parcelas, juros total de {Math.round(FUNCAFE.jurosTotal * 100)}%. 1 empréstimo ativo por vez. Libera expansão sem caixa.
-      </Text>
-
-      {(() => {
-        const limite = limiteEmprestimo(state);
-        const ativo = state.emprestimo;
-        if (ativo) {
+      {/* ---------- 3. EQUIPAMENTOS ---------- */}
+      <Titulo icone="🚜">Equipamentos</Titulo>
+      <View style={styles.grid2}>
+        {Object.entries(EQUIPAMENTOS).map(([id, eq]) => {
+          const possui = state.equipamentos.includes(id);
+          const semGrana = state.caixa < eq.custo;
           return (
-            <View style={styles.cardInsumo}>
-              <Text style={styles.equipeStatus}>
-                Empréstimo ativo: R$ {ativo.principal.toLocaleString("pt-BR")}
-              </Text>
-              <Text style={styles.equipeSub}>
-                Restam {ativo.parcelasRestantes}/{ativo.parcelasTotais} parcelas de R$ {ativo.valorParcela.toLocaleString("pt-BR")}
-              </Text>
-              <Text style={styles.equipeSub}>
-                Total a pagar: R$ {(ativo.valorParcela * ativo.parcelasRestantes).toLocaleString("pt-BR")}
-              </Text>
-            </View>
-          );
-        }
-        return (
-          <View style={styles.cardInsumo}>
-            <Text style={styles.equipeStatus}>
-              Limite disponível: R$ {limite.toLocaleString("pt-BR")}
-            </Text>
-            <Text style={styles.equipeSub}>
-              (Aumenta com hectares formados na fazenda)
-            </Text>
-            <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-              {[10000, 25000, 50000].filter((v) => v <= limite).map((valor) => (
-                <Botao
-                  key={valor}
-                  pequeno
-                  variante="primario"
-                  onPress={() =>
-                    dispatch({ type: "PEDIR_EMPRESTIMO", payload: { valor } })
-                  }
-                >
-                  Pegar R${(valor / 1000).toFixed(0)}k (parc. R${calcularParcela(valor).toLocaleString("pt-BR")})
-                </Botao>
-              ))}
-              {limite > 50000 && (
-                <Botao
-                  pequeno
-                  variante="primario"
-                  onPress={() =>
-                    dispatch({ type: "PEDIR_EMPRESTIMO", payload: { valor: limite } })
-                  }
-                >
-                  Limite máx: R${(limite / 1000).toFixed(0)}k
-                </Botao>
-              )}
-            </View>
-          </View>
-        );
-      })()}
-
-      <Text style={styles.h2}>👥 Equipe</Text>
-      <Text style={styles.dica}>
-        Mensalistas mantêm a lavoura saudável continuamente. Encarregado coordena a turma e dá +15% rendimento na panha. Folha cobrada todo 1º dia do mês.
-      </Text>
-
-      {/* Resumo da equipe atual */}
-      {(() => {
-        const equipe = state.equipe || { mensalistas: 0, encarregado: false };
-        const cobertura = hectaresCobertura(equipe);
-        const folha = folhaPagamentoMensal(equipe);
-        const hectaresTot = state.talhoes.reduce(
-          (a, t) => a + (t.variedadeId ? t.hectares : 0),
-          0
-        );
-        if (folha === 0) return null;
-        return (
-          <View style={styles.cardInsumo}>
-            <Text style={styles.equipeStatus}>
-              Equipe atual: {equipe.mensalistas} mensalista{equipe.mensalistas !== 1 ? "s" : ""}
-              {equipe.encarregado ? " + 1 encarregado" : ""}
-            </Text>
-            <Text style={styles.equipeSub}>
-              Cobertura: {cobertura}ha / {hectaresTot.toFixed(1)}ha lavoura · Folha mensal: R$ {folha.toLocaleString("pt-BR")}
-            </Text>
-          </View>
-        );
-      })()}
-
-      <View style={styles.grid}>
-        {/* Mensalista */}
-        <View style={styles.cardInsumo}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.icone}>{EQUIPE.mensalista.icone}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.nome}>{EQUIPE.mensalista.nome}</Text>
-              <Text style={styles.efeito}>
-                R$ {EQUIPE.mensalista.salarioMensal}/mês · cobre {EQUIPE.mensalista.hectaresCobertura}ha
-              </Text>
-            </View>
-          </View>
-          <Text style={styles.desc}>{EQUIPE.mensalista.desc}</Text>
-          <View style={styles.cardFooter}>
-            <Text style={styles.preco}>
-              Atual: {state.equipe?.mensalistas || 0}
-            </Text>
-            <View style={{ flexDirection: "row", gap: 6 }}>
-              {(state.equipe?.mensalistas || 0) > 0 && (
-                <Botao
-                  pequeno
-                  variante="perigo"
-                  onPress={() => dispatch({ type: "DEMITIR_MENSALISTA" })}
-                >
-                  Demitir
-                </Botao>
-              )}
-              <Botao
-                pequeno
-                variante={state.caixa < EQUIPE.mensalista.salarioMensal ? "fantasma" : "primario"}
-                disabled={state.caixa < EQUIPE.mensalista.salarioMensal}
-                onPress={() => dispatch({ type: "CONTRATAR_MENSALISTA" })}
-              >
-                Contratar
-              </Botao>
-            </View>
-          </View>
-        </View>
-
-        {/* Encarregado */}
-        <View style={styles.cardInsumo}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.icone}>{EQUIPE.encarregado.icone}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.nome}>{EQUIPE.encarregado.nome}</Text>
-              <Text style={styles.efeito}>
-                R$ {EQUIPE.encarregado.salarioMensal}/mês · cobre {EQUIPE.encarregado.hectaresCobertura}ha · +15% panha
-              </Text>
-            </View>
-          </View>
-          <Text style={styles.desc}>{EQUIPE.encarregado.desc}</Text>
-          <View style={styles.cardFooter}>
-            <Text style={styles.preco}>
-              {state.equipe?.encarregado ? "✓ Contratado" : "Não contratado"}
-            </Text>
-            {state.equipe?.encarregado ? (
-              <Botao
-                pequeno
-                variante="perigo"
-                onPress={() => dispatch({ type: "DEMITIR_ENCARREGADO" })}
-              >
-                Demitir
-              </Botao>
-            ) : (
-              <Botao
-                pequeno
-                variante={state.caixa < EQUIPE.encarregado.salarioMensal ? "fantasma" : "primario"}
-                disabled={state.caixa < EQUIPE.encarregado.salarioMensal}
-                onPress={() => dispatch({ type: "CONTRATAR_ENCARREGADO" })}
-              >
-                Contratar
-              </Botao>
-            )}
-          </View>
-        </View>
-      </View>
-
-      <Text style={styles.h2}>🏅 Certificações</Text>
-      <Text style={styles.dica}>
-        Selos que agregam valor à saca. Custo de adesão único + custo anual de auditoria.
-        Orgânico exige 3 anos sem defensivo.
-      </Text>
-
-      <View style={styles.grid}>
-        {Object.entries(CERTIFICACOES).map(([id, cert]) => {
-          const status = statusCertText(state.certificacoes, id);
-          const adquirida = !!state.certificacoes?.[id];
-          const semGrana = state.caixa < cert.custoAdesao;
-          return (
-            <View key={id} style={[styles.cardInsumo, adquirida && styles.cardAdquirida]}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.icone}>{cert.icone}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.nome}>{cert.nome}</Text>
-                  <Text style={styles.efeito}>
-                    +{Math.round(cert.premio * 100)}% sobre o preço da saca · {status}
-                  </Text>
-                </View>
-              </View>
-              <Text style={styles.desc}>{cert.desc}</Text>
-              <Text style={styles.requisito}>📋 {cert.requisitoTexto}</Text>
-              <View style={styles.cardFooter}>
-                <View>
-                  <Text style={styles.preco}>
-                    R$ {cert.custoAdesao.toLocaleString("pt-BR")}
-                  </Text>
-                  <Text style={styles.precoAnual}>
-                    + R${cert.custoAnual}/ano
-                  </Text>
-                </View>
-                {!adquirida && (
-                  <Botao
-                    pequeno
-                    variante={semGrana ? "fantasma" : "primario"}
-                    disabled={semGrana}
-                    onPress={() =>
-                      dispatch({
-                        type: "ADERIR_CERTIFICACAO",
-                        payload: { certId: id },
-                      })
-                    }
-                  >
-                    {cert.diasTransicao > 0 ? "Iniciar transição" : "Aderir"}
-                  </Botao>
+            <View
+              key={id}
+              style={[styles.tile, possui && styles.tileOwned, !possui && semGrana && styles.tileDim]}
+            >
+              <View style={styles.iconeEmoji}>
+                {id === "trator" ? (
+                  <Image source={IMG_TRATOR} style={styles.img} resizeMode="cover" />
+                ) : (
+                  <Text style={styles.emojiGrande}>{eq.icone}</Text>
                 )}
               </View>
+              <Text style={styles.tileNome}>{eq.nome}</Text>
+              <Text style={styles.tileDesc}>{TERRENO_LABEL[eq.melhorEm]}</Text>
+              <Text style={styles.tileBenef}>{beneficioEquip(eq)}</Text>
+              {possui ? (
+                <View style={styles.owned}>
+                  <Text style={styles.ownedTxt}>✓ Adquirido</Text>
+                </View>
+              ) : (
+                <Botao
+                  pequeno
+                  fullWidth
+                  variante={semGrana ? "fantasma" : "primario"}
+                  disabled={semGrana}
+                  onPress={() =>
+                    dispatch({ type: "COMPRAR_EQUIPAMENTO", payload: { equipId: id } })
+                  }
+                >
+                  R$ {eq.custo.toLocaleString("pt-BR")}
+                </Botao>
+              )}
+            </View>
+          );
+        })}
+      </View>
+
+      {/* ---------- 4. TULHA ---------- */}
+      <Titulo icone="🏭">Infraestrutura — Tulha</Titulo>
+      <View style={styles.grid3}>
+        {TULHA_PROGRESSAO.map((tipo, i) => {
+          const t = TULHAS[tipo];
+          const idxAtual = TULHA_PROGRESSAO.indexOf(state.tulha || "pequena");
+          const atual = i === idxAtual;
+          const futuro = i > idxAtual;
+          const semGrana = state.caixa < t.custoUpgrade;
+          return (
+            <View key={tipo} style={[styles.tile, atual && styles.tileAtual, !atual && !futuro && styles.tileDim]}>
+              <View style={[styles.iconeImg, futuro && styles.imgCinza]}>
+                <Image source={IMG_TULHA} style={styles.img} resizeMode="cover" />
+              </View>
+              <Text style={styles.tileNome}>{t.nome}</Text>
+              <Text style={styles.tileDesc}>{t.capacidade} sacas</Text>
+              {atual ? (
+                <View style={styles.atualPill}>
+                  <Text style={styles.atualTxt}>✓ ATUAL</Text>
+                </View>
+              ) : futuro ? (
+                <Botao
+                  pequeno
+                  fullWidth
+                  variante={semGrana ? "fantasma" : "primario"}
+                  disabled={semGrana}
+                  onPress={() => dispatch({ type: "UPGRADE_TULHA", payload: { tipo } })}
+                >
+                  R$ {t.custoUpgrade.toLocaleString("pt-BR")}
+                </Botao>
+              ) : (
+                <Text style={styles.tileDesc}>—</Text>
+              )}
+            </View>
+          );
+        })}
+      </View>
+
+      {/* ---------- 5. FUNCAFÉ ---------- */}
+      <Titulo icone="🏦">Financiamento (Funcafé)</Titulo>
+      <View style={styles.funcafe}>
+        <Image source={IMG_FUNCAFE} style={styles.funcafeBg} resizeMode="contain" />
+        {state.emprestimo ? (
+          <View style={{ gap: 4 }}>
+            <Text style={styles.funcafeLabel}>EMPRÉSTIMO ATIVO</Text>
+            <Text style={styles.funcafeValor}>
+              R$ {state.emprestimo.principal.toLocaleString("pt-BR")}
+            </Text>
+            <Text style={styles.funcafeNota}>
+              Restam {state.emprestimo.parcelasRestantes}/{state.emprestimo.parcelasTotais}{" "}
+              parcelas de R$ {state.emprestimo.valorParcela.toLocaleString("pt-BR")}
+            </Text>
+          </View>
+        ) : (
+          <>
+            <Text style={styles.funcafeLabel}>LIMITE DISPONÍVEL</Text>
+            <Text style={styles.funcafeValor}>
+              R$ {limiteEmprestimo(state).toLocaleString("pt-BR")}
+            </Text>
+            <Text style={styles.funcafeNota}>Crédito para expansão (escala com hectares formados)</Text>
+            <View style={styles.funcafeBtns}>
+              {[10000, 25000, 50000]
+                .filter((v) => v <= limiteEmprestimo(state))
+                .map((valor, idx, arr) => (
+                  <Botao
+                    key={valor}
+                    pequeno
+                    variante={idx === arr.length - 1 ? "sucesso" : "secundario"}
+                    onPress={() => dispatch({ type: "PEDIR_EMPRESTIMO", payload: { valor } })}
+                  >
+                    R$ {(valor / 1000).toFixed(0)}k · parc. {calcularParcela(valor).toLocaleString("pt-BR")}
+                  </Botao>
+                ))}
+            </View>
+          </>
+        )}
+      </View>
+
+      {/* ---------- 6. EQUIPE ---------- */}
+      <Titulo icone="👥">Equipe</Titulo>
+      {(() => {
+        const equipe = state.equipe || { mensalistas: 0, encarregado: false };
+        const folha = folhaPagamentoMensal(equipe);
+        const cobertura = hectaresCobertura(equipe);
+        const haTot = state.talhoes.reduce((a, t) => a + (t.variedadeId ? t.hectares : 0), 0);
+        return folha > 0 ? (
+          <Text style={styles.equipeResumo}>
+            {equipe.mensalistas} mensalista(s){equipe.encarregado ? " + encarregado" : ""} ·
+            cobertura {cobertura}ha / {haTot.toFixed(1)}ha · folha R$ {folha.toLocaleString("pt-BR")}/mês
+          </Text>
+        ) : null;
+      })()}
+      <View style={styles.grid2}>
+        {/* Mensalista */}
+        <View style={styles.equipeCard}>
+          <View style={styles.equipeAvatar}>
+            <Text style={styles.emojiMed}>👤</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.tileNome}>Mensalista</Text>
+            <Text style={styles.tileDesc}>
+              R$ {EQUIPE.mensalista.salarioMensal.toLocaleString("pt-BR")}/mês · {EQUIPE.mensalista.hectaresCobertura}ha
+            </Text>
+            <Text style={styles.tileDesc}>Atuais: {state.equipe?.mensalistas || 0}</Text>
+          </View>
+          <View style={{ gap: 6 }}>
+            {(state.equipe?.mensalistas || 0) > 0 && (
+              <Botao pequeno variante="perigo" onPress={() => dispatch({ type: "DEMITIR_MENSALISTA" })}>
+                −
+              </Botao>
+            )}
+            <Botao
+              pequeno
+              variante={state.caixa < EQUIPE.mensalista.salarioMensal ? "fantasma" : "sucesso"}
+              disabled={state.caixa < EQUIPE.mensalista.salarioMensal}
+              onPress={() => dispatch({ type: "CONTRATAR_MENSALISTA" })}
+            >
+              Contratar
+            </Botao>
+          </View>
+        </View>
+        {/* Encarregado */}
+        <View style={styles.equipeCard}>
+          <View style={styles.equipeAvatar}>
+            <Text style={styles.emojiMed}>👔</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.tileNome}>Encarregado</Text>
+            <Text style={styles.tileDesc}>
+              R$ {EQUIPE.encarregado.salarioMensal.toLocaleString("pt-BR")}/mês · +15% panha
+            </Text>
+            <Text style={styles.tileDesc}>
+              {state.equipe?.encarregado ? "✓ Contratado" : "Máx 1"}
+            </Text>
+          </View>
+          {state.equipe?.encarregado ? (
+            <Botao pequeno variante="perigo" onPress={() => dispatch({ type: "DEMITIR_ENCARREGADO" })}>
+              Demitir
+            </Botao>
+          ) : (
+            <Botao
+              pequeno
+              variante={state.caixa < EQUIPE.encarregado.salarioMensal ? "fantasma" : "sucesso"}
+              disabled={state.caixa < EQUIPE.encarregado.salarioMensal}
+              onPress={() => dispatch({ type: "CONTRATAR_ENCARREGADO" })}
+            >
+              Contratar
+            </Botao>
+          )}
+        </View>
+      </View>
+
+      {/* ---------- 7. CERTIFICAÇÕES ---------- */}
+      <Titulo icone="🏅">Certificações</Titulo>
+      <View style={styles.certLista}>
+        {Object.entries(CERTIFICACOES).map(([id, cert]) => {
+          const cor = CERT_COR[id] || CERT_COR.organico;
+          const adquirida = !!state.certificacoes?.[id];
+          const status = statusCertText(state.certificacoes, id);
+          const semGrana = state.caixa < cert.custoAdesao;
+          return (
+            <View key={id} style={styles.certCard}>
+              <View style={[styles.certIcone, { backgroundColor: cor.bg, borderColor: cor.borda }]}>
+                <Text style={styles.emojiMed}>{cert.icone}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.tileNome}>{cert.nome}</Text>
+                <Text style={[styles.certPremio, { color: cor.fg }]}>
+                  +{Math.round(cert.premio * 100)}% no preço da saca · {status}
+                </Text>
+              </View>
+              {!adquirida && (
+                <Botao
+                  pequeno
+                  variante={semGrana ? "fantasma" : "primario"}
+                  disabled={semGrana}
+                  onPress={() => dispatch({ type: "ADERIR_CERTIFICACAO", payload: { certId: id } })}
+                >
+                  {cert.diasTransicao > 0 ? "Transição" : "Obter"}
+                </Botao>
+              )}
             </View>
           );
         })}
@@ -403,87 +378,200 @@ export default function TelaLoja() {
   );
 }
 
+const M = tema.madeira;
+const MB = tema.madeiraBase;
+
 const styles = StyleSheet.create({
-  container: { gap: 12 },
-  h2: {
-    color: tema.dourado,
-    fontSize: 14,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-    marginTop: 6,
+  container: { gap: 16 },
+
+  h3: {
+    color: M,
+    fontSize: 18,
+    fontWeight: "800",
+    letterSpacing: 0.3,
+    paddingLeft: 2,
   },
-  dica: {
-    color: tema.textoDim,
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  grid: { gap: 8 },
-  cardInsumo: {
-    backgroundColor: tema.bg2,
-    borderWidth: 1,
-    borderColor: tema.bg3,
-    borderRadius: tema.raio,
-    padding: 12,
-    gap: 6,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
+
+  /* Painel chunky base */
+  painel: {
+    backgroundColor: "#ece2c9",
+    borderRadius: 16,
+    borderWidth: 4,
+    borderColor: M,
+    borderBottomWidth: 8,
+    borderBottomColor: MB,
+    padding: 16,
     gap: 8,
   },
-  icone: {
-    fontSize: 22,
-    lineHeight: 24,
+
+  /* Cooperativa */
+  coopBanner: { borderColor: tema.verde, borderBottomColor: tema.verdeBase },
+  coopTitulo: { color: "#321203", fontSize: 16, fontWeight: "800" },
+  coopSub: { color: tema.textoDim, fontSize: 13, lineHeight: 18 },
+  coopChips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 2 },
+  coopChip: {
+    backgroundColor: tema.creme,
+    borderWidth: 1,
+    borderColor: tema.linha,
+    borderRadius: 999,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
   },
-  nome: {
-    color: tema.texto,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  efeito: {
-    color: tema.textoDim,
-    fontSize: 11,
-    marginTop: 1,
-  },
-  desc: {
-    color: tema.texto,
-    fontSize: 12,
-    lineHeight: 17,
-    opacity: 0.78,
-  },
-  cardFooter: {
+  coopChipTxt: { fontSize: 12, fontWeight: "700", color: tema.texto },
+  coopFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginTop: 6,
   },
-  preco: {
-    color: tema.dourado,
-    fontWeight: "600",
-    fontVariant: ["tabular-nums"],
+  coopPreco: { color: tema.texto, fontSize: 18, fontWeight: "800" },
+  coopPrecoSub: { color: tema.textoDim, fontSize: 12, fontWeight: "500" },
+
+  /* Grades */
+  grid3: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  grid2: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+
+  /* Tile (card chunky) */
+  tile: {
+    backgroundColor: "#ece2c9",
+    borderRadius: 16,
+    borderWidth: 4,
+    borderColor: M,
+    borderBottomWidth: 8,
+    borderBottomColor: MB,
+    padding: 12,
+    alignItems: "center",
+    gap: 6,
+    width: "31%",
+    flexGrow: 1,
   },
-  precoAnual: {
-    color: tema.textoDim,
-    fontSize: 10,
-    marginTop: 1,
+  tileDim: { opacity: 0.55 },
+  tileOwned: { borderColor: tema.verde, borderBottomColor: tema.verdeBase },
+  tileAtual: { borderColor: tema.verde, borderBottomColor: tema.verdeBase },
+
+  iconeImg: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "#f1e8cf",
+    borderWidth: 3,
+    borderColor: "#e3d9c1",
+    overflow: "hidden",
   },
-  requisito: {
-    color: tema.azul,
-    fontSize: 11,
-    fontStyle: "italic",
+  iconeEmoji: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#f1e8cf",
+    borderWidth: 3,
+    borderColor: "#e3d9c1",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
   },
-  cardAdquirida: {
-    borderColor: tema.verde,
-    opacity: 0.8,
-  },
-  equipeStatus: {
-    color: tema.dourado,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  equipeSub: {
-    color: tema.textoDim,
-    fontSize: 11,
+  img: { width: "100%", height: "100%" },
+  imgCinza: { opacity: 0.55 },
+  emojiGrande: { fontSize: 32 },
+
+  tileNome: { color: "#321203", fontSize: 13, fontWeight: "800", textAlign: "center" },
+  tileDesc: { color: tema.textoDim, fontSize: 11, textAlign: "center", lineHeight: 15 },
+  tileBenef: { color: tema.verde, fontSize: 12, fontWeight: "700", textAlign: "center" },
+  tilePreco: { color: tema.texto, fontSize: 16, fontWeight: "800" },
+
+  owned: {
+    backgroundColor: tema.verdeFixo,
+    borderRadius: 999,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
     marginTop: 2,
   },
+  ownedTxt: { color: tema.verdeBase, fontSize: 12, fontWeight: "800" },
+
+  atualPill: {
+    backgroundColor: tema.verdeFixo,
+    borderRadius: 999,
+    paddingVertical: 5,
+    paddingHorizontal: 14,
+    marginTop: 2,
+  },
+  atualTxt: { color: tema.verdeBase, fontSize: 11, fontWeight: "800", letterSpacing: 0.5 },
+
+  /* Funcafé */
+  funcafe: {
+    backgroundColor: "#e7f0df",
+    borderRadius: 16,
+    borderWidth: 3,
+    borderColor: "#aed29e",
+    padding: 16,
+    gap: 4,
+    overflow: "hidden",
+  },
+  funcafeBg: {
+    position: "absolute",
+    right: -20,
+    bottom: -20,
+    width: 130,
+    height: 130,
+    opacity: 0.18,
+  },
+  funcafeLabel: {
+    color: tema.textoDim,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  funcafeValor: { color: tema.verde, fontSize: 26, fontWeight: "800" },
+  funcafeNota: { color: tema.textoDim, fontSize: 12, lineHeight: 16 },
+  funcafeBtns: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
+
+  /* Equipe */
+  equipeResumo: { color: tema.textoDim, fontSize: 12, lineHeight: 16, paddingLeft: 2 },
+  equipeCard: {
+    backgroundColor: "#ece2c9",
+    borderRadius: 16,
+    borderWidth: 4,
+    borderColor: M,
+    borderBottomWidth: 8,
+    borderBottomColor: MB,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    width: "100%",
+  },
+  equipeAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: tema.secondaryFixedDim || "#f6b99d",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#e3a98a",
+  },
+  emojiMed: { fontSize: 24 },
+
+  /* Certificações */
+  certLista: { gap: 10 },
+  certCard: {
+    backgroundColor: "#ece2c9",
+    borderRadius: 16,
+    borderWidth: 4,
+    borderColor: M,
+    borderBottomWidth: 8,
+    borderBottomColor: MB,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  certIcone: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+  },
+  certPremio: { fontSize: 12, fontWeight: "700", marginTop: 2 },
 });

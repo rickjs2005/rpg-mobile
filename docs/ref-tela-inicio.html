@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Império do Café: Zona da Mata - Início</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&amp;family=Be+Vietnam+Pro:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-tertiary-fixed-variant": "#594400",
+                        "background": "#fff8ef",
+                        "on-primary-fixed": "#022200",
+                        "on-surface": "#201b0c",
+                        "surface-variant": "#ece2c9",
+                        "primary": "#2a691d",
+                        "secondary-container": "#ffc1a5",
+                        "inverse-on-surface": "#faf0d7",
+                        "on-tertiary-fixed": "#241a00",
+                        "primary-container": "#438334",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-fixed": "#aef597",
+                        "error": "#ba1a1a",
+                        "surface-bright": "#fff8ef",
+                        "tertiary-fixed-dim": "#f4bf00",
+                        "outline-variant": "#c1c9b9",
+                        "surface-container": "#f7edd4",
+                        "on-secondary-fixed": "#321203",
+                        "tertiary-fixed": "#ffdf92",
+                        "surface": "#fff8ef",
+                        "primary-fixed-dim": "#93d87e",
+                        "error-container": "#ffdad6",
+                        "on-error": "#ffffff",
+                        "on-tertiary-container": "#503d00",
+                        "inverse-surface": "#35301f",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#201b0c",
+                        "tertiary-container": "#d3a500",
+                        "surface-container-low": "#fdf3da",
+                        "on-secondary-container": "#7a4d37",
+                        "tertiary": "#755b00",
+                        "surface-tint": "#2d6b1f",
+                        "inverse-primary": "#93d87e",
+                        "surface-container-high": "#f1e8cf",
+                        "on-primary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "surface-container-highest": "#ece2c9",
+                        "outline": "#717a6b",
+                        "on-surface-variant": "#41493c",
+                        "on-primary-fixed-variant": "#115206",
+                        "on-secondary": "#ffffff",
+                        "on-primary-container": "#f8ffef",
+                        "secondary-fixed-dim": "#f6b99d",
+                        "surface-dim": "#e3d9c1",
+                        "on-secondary-fixed-variant": "#663c27",
+                        "secondary": "#82533d",
+                        "secondary-fixed": "#ffdbcc"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "sm": "0.25rem",
+                        "md": "0.75rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        "headline-lg-mobile": ["Plus Jakarta Sans", "sans-serif"],
+                        "display-lg": ["Plus Jakarta Sans", "sans-serif"],
+                        "label-bold": ["Be Vietnam Pro", "sans-serif"],
+                        "headline-lg": ["Plus Jakarta Sans", "sans-serif"],
+                        "title-md": ["Plus Jakarta Sans", "sans-serif"],
+                        "body-sm": ["Be Vietnam Pro", "sans-serif"],
+                        "body-lg": ["Be Vietnam Pro", "sans-serif"]
+                    },
+                    boxShadow: {
+                        'btn-primary': '0 4px 0 0 #115206, inset 0 2px 0 0 rgba(255,255,255,0.2)',
+                        'btn-primary-active': '0 0px 0 0 #115206, inset 0 2px 0 0 rgba(255,255,255,0.2)',
+                        'btn-secondary': '0 4px 0 0 #663c27, inset 0 2px 0 0 rgba(255,255,255,0.2)',
+                        'btn-secondary-active': '0 0px 0 0 #663c27, inset 0 2px 0 0 rgba(255,255,255,0.2)',
+                        'btn-gold': '0 4px 0 0 #594400, inset 0 2px 0 0 rgba(255,255,255,0.4)',
+                        'btn-gold-active': '0 0px 0 0 #594400, inset 0 2px 0 0 rgba(255,255,255,0.4)',
+                        'panel': '0 8px 0 0 #663c27',
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: theme('colors.background'); }
+        .text-stroke {
+            -webkit-text-stroke: 1.5px theme('colors.on-surface');
+            color: theme('colors.tertiary-fixed-dim');
+            text-shadow: 2px 2px 0 theme('colors.on-surface');
+        }
+        .btn-press:active {
+            transform: translateY(4px);
+            box-shadow: theme('boxShadow.btn-primary-active');
+        }
+        .btn-gold-press:active {
+            transform: translateY(4px);
+            box-shadow: theme('boxShadow.btn-gold-active');
+        }
+        .btn-secondary-press:active {
+            transform: translateY(4px);
+            box-shadow: theme('boxShadow.btn-secondary-active');
+        }
+        .wood-texture {
+            background-color: theme('colors.secondary');
+            background-image: repeating-linear-gradient(
+                to right,
+                transparent,
+                transparent 10px,
+                rgba(0,0,0,0.05) 10px,
+                rgba(0,0,0,0.05) 20px
+            );
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen font-body-sm text-on-surface pb-12 flex justify-center">
+<main class="w-full max-w-[800px] flex flex-col items-center">
+<!-- Hero Header -->
+<header class="relative w-full h-[300px] md:h-[400px] rounded-b-[2rem] md:rounded-[2rem] overflow-hidden mb-8 shadow-panel border-4 border-t-0 md:border-t-4 border-secondary flex items-center justify-center bg-cover bg-center" data-alt="A stylized, vibrant digital illustration of lush green rolling hills in a coffee plantation during sunrise. The scene features warm golden sunlight hitting the neatly aligned rows of coffee plants. In the background, soft mist settles in the valleys, creating a cozy, idyllic rural atmosphere. The overall aesthetic is akin to a high-quality casual farming game with rich, saturated colors and soft lighting, evoking a sense of peaceful productivity." style="background-image: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4)), url('https://lh3.googleusercontent.com/aida-public/AB6AXuDnEXHO8nhVhOYci3Zc0259DP4-zriqeAVJU8kz2fOK33Y_6TD-SOIK15OBn0N-YYC-Ats_ahBg7uEkwoSVGxcIlVtASt47FIQ6WvqjXcnaMpxExD0hhKJtj9flvveKWcRg4rn7oUo213238TraIqShqi_Einq4z4sMRzvHgFYH5hgEHSaS5_ZD0tHqp4YNYl7jWwafl6b7kar3hopoIQe1WIykg-kjhOrpoLVfXP3lGrKd19q7gDNAxfA6iEuX6XVT8y0ymyy2lg');">
+<div class="text-center z-10 p-6 bg-secondary/80 backdrop-blur-sm rounded-xl border-4 border-secondary-fixed-dim transform -rotate-2">
+<h1 class="font-display-lg text-display-lg text-stroke leading-tight">
+                    Império<br/>do Café
+                </h1>
+<p class="font-title-md text-title-md text-surface-bright mt-2 font-bold drop-shadow-md">Zona da Mata</p>
+</div>
+</header>
+<div class="px-4 w-full flex flex-col gap-6">
+<!-- Cards Section -->
+<section class="flex flex-col gap-6">
+<!-- Card 1: Rocinha Pronta -->
+<div class="bg-surface rounded-[24px] border-4 border-secondary shadow-panel overflow-hidden">
+<div class="p-6 md:p-8 flex flex-col md:flex-row gap-6 items-center md:items-start">
+<div class="w-32 h-32 md:w-40 md:h-40 rounded-xl overflow-hidden border-4 border-outline-variant shrink-0 bg-surface-container" data-alt="A stylized illustration of a charming, small rural farmhouse with a tiled roof, surrounded by a few rows of mature, healthy coffee plants with red berries. The setting is bright and sunny, featuring warm earthy browns, lush greens, and a cheerful blue sky. The style is 3D, tactile, and resembles a cozy farm simulation game asset." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD3urO9XMYdtXI7QWFSsjug898SRzSfjObfVyo7G6UjKB-O0HobO3onpITreKyuwKXPCXJmMjg9lfIcbX5IuA0ObWd7cQ9pHAwfVfMe77fmhNkhOoHPCFRHdMOnXYO5DusFLaO3i-GCgSltSeFRCjGJGnKCDiXIVTbzmxYqbt1yiIWqWnQ3gJWiRe4QC2C2QmdBYMOtdxxV7plLDyfXeFplqBHIkT8IlNIZbuRwvxrHsgKVizRhJeja-flsAWVSA5L76xe-ZR6FfA'); background-size: cover; background-position: center;">
+</div>
+<div class="flex-1 flex flex-col gap-4 text-center md:text-left">
+<div>
+<h2 class="font-headline-lg text-title-md md:text-headline-lg text-on-surface mb-2">☕ Rocinha Pronta</h2>
+<p class="font-body-lg text-body-sm md:text-body-lg text-on-surface-variant">Comece sua jornada com um lote estruturado e algumas fileiras produzindo. Ideal para iniciantes.</p>
+</div>
+<div class="flex flex-wrap gap-2 justify-center md:justify-start">
+<span class="bg-primary-fixed text-on-primary-fixed font-label-bold text-label-bold px-3 py-1.5 rounded-full border-2 border-primary">
+                                    DIFICULDADE: FÁCIL
+                                </span>
+<span class="bg-tertiary-fixed text-on-tertiary-fixed font-label-bold text-label-bold px-3 py-1.5 rounded-full border-2 border-tertiary-fixed-dim">
+                                    ORÇAMENTO: R$ 5.000
+                                </span>
+</div>
+</div>
+<div class="w-full md:w-auto mt-2 md:mt-0 md:self-end flex items-center justify-center">
+<button class="w-full md:w-32 py-3 px-6 bg-tertiary-fixed-dim text-on-tertiary-fixed-variant font-title-md text-title-md rounded-full shadow-btn-gold btn-gold-press transition-transform duration-100 ease-in-out border-2 border-tertiary">
+                                INICIAR
+                            </button>
+</div>
+</div>
+</div>
+<!-- Card 2: Terra Nua -->
+<div class="bg-surface rounded-[24px] border-4 border-secondary shadow-panel overflow-hidden">
+<div class="p-6 md:p-8 flex flex-col md:flex-row gap-6 items-center md:items-start">
+<div class="w-32 h-32 md:w-40 md:h-40 rounded-xl overflow-hidden border-4 border-outline-variant shrink-0 bg-surface-container" data-alt="A stylized illustration of an empty, newly tilled patch of brown earth, ready for planting, set against a backdrop of distant green hills. There are no buildings or mature plants. The lighting is bright morning sun, casting soft shadows across the ridges of soil. The visual style is highly tactile, 3D, and characteristic of a welcoming farm building game." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAppGGKo4bXYs77VJ0l5Wj_jIaIp91yuGeIv8fHvsb1Ja_LEb7nRTp-EiLP2crkJdtTDCaeMFodq5_dt4kGkTqEOxO8P5thybCaJuQoq7_KjiBggW3fGWS8skU9PYsA5XrJv5Wi_9d-D4QKtoSs73MKc3SOdyKTbfPCVUGscTHVhLjpBWUKiq8ghm8a2l7mAl7xYYc7m_taDZ4QlpXv1l-Q5YjUxmWWSFTpNQzBoKsnqD972amCDBS3L8pXf2-iCXDQRvuGZba_Rw'); background-size: cover; background-position: center;">
+</div>
+<div class="flex-1 flex flex-col gap-4 text-center md:text-left">
+<div>
+<h2 class="font-headline-lg text-title-md md:text-headline-lg text-on-surface mb-2">🌱 Terra Nua</h2>
+<p class="font-body-lg text-body-sm md:text-body-lg text-on-surface-variant">Um terreno vazio e desafiador. Planeje cada sulco e construa seu império do zero absoluto.</p>
+</div>
+<div class="flex flex-wrap gap-2 justify-center md:justify-start">
+<span class="bg-error-container text-on-error-container font-label-bold text-label-bold px-3 py-1.5 rounded-full border-2 border-error">
+                                    DIFICULDADE: DIFÍCIL
+                                </span>
+<span class="bg-tertiary-fixed text-on-tertiary-fixed font-label-bold text-label-bold px-3 py-1.5 rounded-full border-2 border-tertiary-fixed-dim">
+                                    ORÇAMENTO: R$ 3.000
+                                </span>
+</div>
+</div>
+<div class="w-full md:w-auto mt-2 md:mt-0 md:self-end flex items-center justify-center">
+<button class="w-full md:w-32 py-3 px-6 wood-texture text-surface-bright font-title-md text-title-md rounded-full shadow-btn-secondary btn-secondary-press transition-transform duration-100 ease-in-out border-2 border-on-secondary-fixed">
+                                INICIAR
+                            </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Secondary Menu -->
+<section class="mt-8 bg-surface-container rounded-xl p-4 border-2 border-surface-variant">
+<div class="flex flex-col gap-3">
+<button class="w-full py-4 px-6 bg-primary text-on-primary font-title-md text-title-md rounded-xl shadow-btn-primary btn-press flex flex-col items-center justify-center transition-transform duration-100 border-2 border-on-primary-fixed">
+<span>CONTINUAR</span>
+<span class="font-body-sm text-sm text-primary-fixed font-normal opacity-90 mt-1">Sítio Alvorada • Ano 3</span>
+</button>
+<button class="w-full py-3 px-6 bg-surface text-on-surface font-title-md text-title-md rounded-xl shadow-sm border-2 border-outline-variant hover:bg-surface-container-low transition-colors">
+                        CONFIGURAÇÕES
+                    </button>
+<button class="w-full py-3 px-6 bg-surface text-on-surface font-title-md text-title-md rounded-xl shadow-sm border-2 border-outline-variant hover:bg-surface-container-low transition-colors">
+                        SOBRE O PROJETO
+                    </button>
+</div>
+</section>
+<!-- Footer -->
+<footer class="mt-8 text-center">
+<p class="font-body-sm text-body-sm text-on-surface-variant font-medium">Versão 1.0.4 • © 2024 Coffee Empire</p>
+</footer>
+</div>
+</main>
+</body></html>

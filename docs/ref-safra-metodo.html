@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Safra - Escolha de Método</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-container": "#438334",
+                        "primary-fixed": "#aef597",
+                        "on-error-container": "#93000a",
+                        "surface-container": "#f7edd4",
+                        "tertiary-fixed": "#ffdf92",
+                        "on-tertiary-fixed-variant": "#594400",
+                        "surface-variant": "#ece2c9",
+                        "error-container": "#ffdad6",
+                        "surface-container-low": "#fdf3da",
+                        "secondary-fixed-dim": "#f6b99d",
+                        "on-surface": "#201b0c",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed-variant": "#115206",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "surface-dim": "#e3d9c1",
+                        "tertiary-container": "#d3a500",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-container": "#503d00",
+                        "on-surface-variant": "#41493c",
+                        "inverse-on-surface": "#faf0d7",
+                        "tertiary": "#755b00",
+                        "surface": "#fff8ef",
+                        "on-secondary-fixed-variant": "#663c27",
+                        "surface-container-high": "#f1e8cf",
+                        "secondary-fixed": "#ffdbcc",
+                        "on-tertiary-fixed": "#241a00",
+                        "outline-variant": "#c1c9b9",
+                        "surface-tint": "#2d6b1f",
+                        "primary": "#2a691d",
+                        "outline": "#717a6b",
+                        "on-primary-fixed": "#022200",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-fixed-dim": "#93d87e",
+                        "on-secondary-container": "#7a4d37",
+                        "inverse-primary": "#93d87e",
+                        "secondary": "#82533d",
+                        "on-secondary-fixed": "#321203",
+                        "secondary-container": "#ffc1a5",
+                        "background": "#fff8ef",
+                        "surface-bright": "#fff8ef",
+                        "on-background": "#201b0c",
+                        "tertiary-fixed-dim": "#f4bf00",
+                        "surface-container-highest": "#ece2c9",
+                        "on-primary-container": "#f8ffef",
+                        "inverse-surface": "#35301f"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "panel-padding": "24px",
+                        "margin-mobile": "20px",
+                        "gutter": "16px",
+                        "margin-desktop": "40px"
+                    },
+                    "fontFamily": {
+                        "label-bold": ["beVietnamPro"],
+                        "body-sm": ["beVietnamPro"],
+                        "headline-lg-mobile": ["plusJakartaSans"],
+                        "headline-lg": ["plusJakartaSans"],
+                        "body-lg": ["beVietnamPro"],
+                        "title-md": ["plusJakartaSans"],
+                        "display-lg": ["plusJakartaSans"]
+                    },
+                    "fontSize": {
+                        "label-bold": ["12px", { "lineHeight": "16px", "fontWeight": "700" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "500" }],
+                        "title-md": ["20px", { "lineHeight": "28px", "fontWeight": "700" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Tactical 3D Button Effect */
+        .btn-3d-primary {
+            box-shadow: 0 4px 0 0 rgba(17, 82, 6, 1), 0 2px 4px rgba(0,0,0,0.2) inset;
+            transition: all 0.1s ease-in-out;
+        }
+        .btn-3d-primary:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0 0 rgba(17, 82, 6, 1), 0 2px 4px rgba(0,0,0,0.2) inset;
+        }
+
+        .btn-3d-secondary {
+            box-shadow: 0 4px 0 0 rgba(102, 60, 39, 1), 0 2px 4px rgba(0,0,0,0.1) inset;
+            transition: all 0.1s ease-in-out;
+        }
+        .btn-3d-secondary:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0 0 rgba(102, 60, 39, 1), 0 2px 4px rgba(0,0,0,0.1) inset;
+        }
+
+        /* Panel Depth */
+        .panel-3d {
+            box-shadow: 0 6px 0 0 var(--tw-colors-secondary-fixed-dim), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Background environment */
+        .world-bg {
+            background: radial-gradient(circle at top center, var(--tw-colors-surface-bright) 0%, var(--tw-colors-surface-container) 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="world-bg min-h-screen text-on-surface font-body-sm pb-24">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center px-margin-mobile h-20 w-full z-50 bg-secondary shadow-[0_4px_0_0_rgba(102,60,39,1)] docked full-width top-0 rounded-b-xl border-b-4 border-on-secondary-fixed-variant md:hidden">
+<button class="text-on-secondary hover:brightness-110 active:translate-y-1 transition-transform">
+<span class="material-symbols-outlined text-[28px]" data-icon="agriculture">agriculture</span>
+</button>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-secondary tracking-tight">🍒 COLHEITA PRONTA</h1>
+<button class="text-on-secondary hover:brightness-110 active:translate-y-1 transition-transform">
+<span class="material-symbols-outlined text-[28px]" data-icon="settings">settings</span>
+</button>
+</header>
+<main class="max-w-[800px] mx-auto px-4 pt-6 space-y-6">
+<!-- Summary Panel -->
+<div class="bg-surface-container-highest rounded-2xl p-2 panel-3d border-4 border-secondary">
+<div class="bg-surface rounded-xl p-4 inner-shadow flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 bg-secondary-container rounded-full flex items-center justify-center shadow-inner">
+<span class="material-symbols-outlined text-on-secondary-container text-2xl" data-icon="eco">eco</span>
+</div>
+<div>
+<p class="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-wider">Lote Colhido</p>
+<h2 class="font-title-md text-title-md text-on-surface">Catuaí Vermelho</h2>
+</div>
+</div>
+<div class="text-right">
+<p class="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-wider">Total</p>
+<div class="flex items-baseline gap-1">
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-primary">45</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Sacas</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Harvest Profile Panel -->
+<div class="bg-surface-container-highest rounded-2xl p-2 panel-3d border-4 border-secondary">
+<div class="bg-surface rounded-xl p-4">
+<h3 class="font-title-md text-title-md text-on-surface mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" data-icon="pie_chart">pie_chart</span>
+                    Perfil do que foi colhido
+                </h3>
+<div class="space-y-3">
+<!-- Maduro -->
+<div class="flex items-center gap-3">
+<div class="w-8 text-center text-lg">🟢</div>
+<div class="flex-1 h-6 bg-surface-variant rounded-full overflow-hidden shadow-inner flex relative">
+<div class="h-full bg-primary relative overflow-hidden" style="width: 78%;">
+<div class="absolute inset-0 bg-white/20 w-full h-1/3"></div>
+</div>
+<span class="absolute inset-y-0 left-3 flex items-center font-label-bold text-label-bold text-on-primary">Maduro</span>
+</div>
+<span class="font-title-md text-title-md text-primary w-12 text-right">78%</span>
+</div>
+<!-- Verde -->
+<div class="flex items-center gap-3">
+<div class="w-8 text-center text-lg">🟡</div>
+<div class="flex-1 h-6 bg-surface-variant rounded-full overflow-hidden shadow-inner flex relative">
+<div class="h-full bg-tertiary-container relative overflow-hidden" style="width: 12%;">
+<div class="absolute inset-0 bg-white/20 w-full h-1/3"></div>
+</div>
+<span class="absolute inset-y-0 left-3 flex items-center font-label-bold text-label-bold text-on-tertiary-container">Verde</span>
+</div>
+<span class="font-title-md text-title-md text-tertiary-container w-12 text-right">12%</span>
+</div>
+<!-- Seco -->
+<div class="flex items-center gap-3">
+<div class="w-8 text-center text-lg">🟤</div>
+<div class="flex-1 h-6 bg-surface-variant rounded-full overflow-hidden shadow-inner flex relative">
+<div class="h-full bg-secondary relative overflow-hidden" style="width: 10%;">
+<div class="absolute inset-0 bg-white/20 w-full h-1/3"></div>
+</div>
+<span class="absolute inset-y-0 left-3 flex items-center font-label-bold text-label-bold text-on-secondary">Seco</span>
+</div>
+<span class="font-title-md text-title-md text-secondary w-12 text-right">10%</span>
+</div>
+</div>
+</div>
+</div>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-center text-on-surface mt-8 mb-4 drop-shadow-md">MÉTODO DE PÓS-COLHEITA</h2>
+<!-- Method Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Method 1: Natural -->
+<div class="bg-surface-container-highest rounded-3xl p-3 border-4 border-secondary shadow-[0_8px_0_0_rgba(102,60,39,1)] relative flex flex-col">
+<div class="absolute -top-3 -right-3 bg-tertiary-container text-on-tertiary-container font-label-bold text-label-bold px-3 py-1 rounded-full shadow-md border-2 border-surface border-b-4">
+                    Comum
+                </div>
+<div class="bg-surface rounded-2xl p-4 flex-1 flex flex-col shadow-inner">
+<h3 class="font-title-md text-title-md text-center mb-2">Natural</h3>
+<div class="flex justify-center mb-4">
+<div class="w-24 h-24 bg-surface-variant rounded-full flex items-center justify-center border-4 border-surface shadow-inner">
+<span class="material-symbols-outlined text-[48px] text-secondary" data-icon="wb_sunny">wb_sunny</span>
+</div>
+</div>
+<div class="space-y-2 mb-6 bg-surface-container p-3 rounded-xl shadow-inner text-sm font-body-sm flex-1">
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[16px]" data-icon="payments">payments</span> Custo</span>
+<span class="font-title-md text-tertiary-container">Grátis</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant flex items-center gap-1">⏱️ Tempo</span>
+<span class="font-bold">18 dias</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant flex items-center gap-1">☕ Qualidade</span>
+<span class="font-bold text-on-surface">+0%</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant flex items-center gap-1">🌧️ Risco Chuva</span>
+<span class="font-bold text-error">90%</span>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary font-title-md text-title-md py-3 rounded-xl btn-3d-primary mt-auto">
+                        Iniciar Secagem
+                    </button>
+</div>
+</div>
+<!-- Method 2: Cereja Descascado (CD) -->
+<div class="bg-surface-container-highest rounded-3xl p-3 border-4 border-secondary shadow-[0_8px_0_0_rgba(102,60,39,1)] relative flex flex-col">
+<div class="bg-surface rounded-2xl p-4 flex-1 flex flex-col shadow-inner">
+<h3 class="font-title-md text-title-md text-center mb-2">Cereja Descascado</h3>
+<div class="flex justify-center mb-4">
+<div class="w-24 h-24 bg-surface-variant rounded-full flex items-center justify-center border-4 border-surface shadow-inner relative">
+<span class="material-symbols-outlined text-[48px] text-primary" data-icon="water_drop">water_drop</span>
+<span class="material-symbols-outlined text-[24px] text-secondary absolute bottom-2 right-2" data-icon="settings">settings</span>
+</div>
+</div>
+<div class="space-y-2 mb-6 bg-surface-container p-3 rounded-xl shadow-inner text-sm font-body-sm flex-1">
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[16px]" data-icon="payments">payments</span> Custo</span>
+<span class="font-bold text-on-surface">R$ 1.200</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant flex items-center gap-1">⏱️ Tempo</span>
+<span class="font-bold">12 dias</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant flex items-center gap-1">☕ Qualidade</span>
+<span class="font-bold text-primary">+8%</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant flex items-center gap-1">🌧️ Risco Chuva</span>
+<span class="font-bold text-tertiary-container">60%</span>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary font-title-md text-title-md py-3 rounded-xl btn-3d-primary mt-auto">
+                        Iniciar Secagem
+                    </button>
+</div>
+</div>
+<!-- Method 3: Lavado -->
+<div class="bg-surface-container-highest rounded-3xl p-3 border-4 border-tertiary-container shadow-[0_8px_0_0_rgba(211,165,0,1)] relative flex flex-col scale-[1.02] md:scale-100 z-10">
+<div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-tertiary-container text-on-tertiary-container font-label-bold text-label-bold px-4 py-1 rounded-full shadow-md border-2 border-surface border-b-4 whitespace-nowrap">
+                    ⭐ Premium
+                </div>
+<div class="bg-surface rounded-2xl p-4 flex-1 flex flex-col shadow-inner">
+<h3 class="font-title-md text-title-md text-center mb-2 mt-2">Lavado</h3>
+<div class="flex justify-center mb-4">
+<div class="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center border-4 border-surface shadow-inner">
+<span class="material-symbols-outlined text-[48px] text-blue-500" data-icon="local_car_wash">local_car_wash</span>
+</div>
+</div>
+<div class="space-y-2 mb-6 bg-surface-container p-3 rounded-xl shadow-inner text-sm font-body-sm flex-1">
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[16px]" data-icon="payments">payments</span> Custo</span>
+<span class="font-bold text-on-surface">R$ 2.000</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant flex items-center gap-1">⏱️ Tempo</span>
+<span class="font-bold text-primary">10 dias</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant flex items-center gap-1">☕ Qualidade</span>
+<span class="font-bold text-primary">+14%</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant flex items-center gap-1">🌧️ Risco Chuva</span>
+<span class="font-bold text-primary">50%</span>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary font-title-md text-title-md py-3 rounded-xl btn-3d-primary mt-auto flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" data-icon="star">star</span> Iniciar Secagem
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full h-20 flex justify-around items-center px-4 pb-2 bg-surface-container-high z-50 rounded-t-xl border-t-4 border-surface-variant shadow-[0_-4px_10px_rgba(0,0,0,0.1)] md:hidden">
+<button class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 hover:bg-surface-variant active:scale-95 transition-all duration-150 p-2 rounded-xl">
+<span class="material-symbols-outlined text-[24px]" data-icon="potted_plant">potted_plant</span>
+<span class="font-label-bold text-label-bold mt-1">Fazenda</span>
+</button>
+<button class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-2 shadow-[0_3px_0_0_rgba(17,82,6,1)] translate-y-[-4px] active:scale-95 transition-all duration-150">
+<span class="material-symbols-outlined text-[24px]" data-icon="bakery_dining">bakery_dining</span>
+<span class="font-label-bold text-label-bold mt-1">Safra</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 hover:bg-surface-variant active:scale-95 transition-all duration-150 p-2 rounded-xl">
+<span class="material-symbols-outlined text-[24px]" data-icon="payments">payments</span>
+<span class="font-label-bold text-label-bold mt-1">Mercado</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 hover:bg-surface-variant active:scale-95 transition-all duration-150 p-2 rounded-xl">
+<span class="material-symbols-outlined text-[24px]" data-icon="inventory_2">inventory_2</span>
+<span class="font-label-bold text-label-bold mt-1">Estoque</span>
+</button>
+</nav>
+</body></html>

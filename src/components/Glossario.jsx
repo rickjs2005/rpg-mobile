@@ -185,8 +185,8 @@ const styles = StyleSheet.create({
     borderColor: tema.bg3,
   },
   catChipAtivo: {
-    backgroundColor: tema.dourado,
-    borderColor: tema.dourado,
+    backgroundColor: tema.gold,
+    borderColor: tema.goldBorda,
   },
   catChipTxt: {
     color: tema.textoDim,

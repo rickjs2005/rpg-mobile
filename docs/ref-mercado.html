@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Mercado - Império do Café</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-tertiary-fixed": "#241a00",
+                      "outline-variant": "#c1c9b9",
+                      "on-surface-variant": "#41493c",
+                      "inverse-on-surface": "#faf0d7",
+                      "tertiary": "#755b00",
+                      "surface": "#fff8ef",
+                      "on-secondary-fixed-variant": "#663c27",
+                      "surface-container-high": "#f1e8cf",
+                      "secondary-fixed": "#ffdbcc",
+                      "surface-container-lowest": "#ffffff",
+                      "primary-fixed-dim": "#93d87e",
+                      "on-secondary-container": "#7a4d37",
+                      "inverse-primary": "#93d87e",
+                      "surface-tint": "#2d6b1f",
+                      "primary": "#2a691d",
+                      "outline": "#717a6b",
+                      "on-primary-fixed": "#022200",
+                      "secondary-container": "#ffc1a5",
+                      "background": "#fff8ef",
+                      "surface-bright": "#fff8ef",
+                      "on-background": "#201b0c",
+                      "tertiary-fixed-dim": "#f4bf00",
+                      "secondary": "#82533d",
+                      "on-secondary-fixed": "#321203",
+                      "on-primary-container": "#f8ffef",
+                      "inverse-surface": "#35301f",
+                      "surface-container-highest": "#ece2c9",
+                      "primary-fixed": "#aef597",
+                      "primary-container": "#438334",
+                      "tertiary-fixed": "#ffdf92",
+                      "on-tertiary-fixed-variant": "#594400",
+                      "surface-variant": "#ece2c9",
+                      "error-container": "#ffdad6",
+                      "surface-container-low": "#fdf3da",
+                      "secondary-fixed-dim": "#f6b99d",
+                      "on-surface": "#201b0c",
+                      "on-error-container": "#93000a",
+                      "surface-container": "#f7edd4",
+                      "on-secondary": "#ffffff",
+                      "error": "#ba1a1a",
+                      "on-primary": "#ffffff",
+                      "on-primary-fixed-variant": "#115206",
+                      "on-error": "#ffffff",
+                      "on-tertiary-container": "#503d00",
+                      "surface-dim": "#e3d9c1",
+                      "tertiary-container": "#d3a500",
+                      "on-tertiary": "#ffffff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "gutter": "16px",
+                      "margin-desktop": "40px",
+                      "unit": "8px",
+                      "panel-padding": "24px",
+                      "margin-mobile": "20px"
+              },
+              "fontFamily": {
+                      "headline-lg": [
+                              "plusJakartaSans"
+                      ],
+                      "body-lg": [
+                              "beVietnamPro"
+                      ],
+                      "title-md": [
+                              "plusJakartaSans"
+                      ],
+                      "display-lg": [
+                              "plusJakartaSans"
+                      ],
+                      "label-bold": [
+                              "beVietnamPro"
+                      ],
+                      "body-sm": [
+                              "beVietnamPro"
+                      ],
+                      "headline-lg-mobile": [
+                              "plusJakartaSans"
+                      ]
+              },
+              "fontSize": {
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "title-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "56px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "800"
+                              }
+                      ],
+                      "label-bold": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "28px",
+                              {
+                                      "lineHeight": "36px",
+                                      "fontWeight": "700"
+                              }
+                      ]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            background-image: radial-gradient(circle at 50% 0%, theme('colors.surface-container-high'), theme('colors.background') 80%);
+            min-height: 100vh;
+            padding-bottom: 100px; /* Space for bottom nav */
+        }
+        
+        .panel-3d {
+            background-color: theme('colors.surface-container-highest');
+            border: 4px solid theme('colors.secondary');
+            border-bottom-width: 8px;
+            border-radius: theme('borderRadius.xl');
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .panel-inner {
+            background-color: theme('colors.surface');
+            border: 2px solid theme('colors.outline-variant');
+            border-radius: theme('borderRadius.lg');
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .btn-3d-green {
+            background-color: theme('colors.primary');
+            border-bottom: 6px solid theme('colors.on-primary-fixed-variant');
+            color: theme('colors.on-primary');
+            box-shadow: inset 0 2px 0 rgba(255,255,255,0.2), 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.1s;
+        }
+        .btn-3d-green:active {
+            transform: translateY(4px);
+            border-bottom-width: 2px;
+            margin-top: 4px;
+        }
+
+        .btn-3d-gold {
+            background-color: theme('colors.tertiary-container');
+            border-bottom: 6px solid theme('colors.on-tertiary-container');
+            color: theme('colors.on-tertiary');
+            box-shadow: inset 0 2px 0 rgba(255,255,255,0.4), 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.1s;
+        }
+        .btn-3d-gold:active {
+            transform: translateY(4px);
+            border-bottom-width: 2px;
+            margin-top: 4px;
+        }
+
+        .chip-glossy {
+            background: linear-gradient(180deg, theme('colors.surface-container-high') 0%, theme('colors.surface-variant') 100%);
+            border: 1px solid theme('colors.outline-variant');
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 1px 2px rgba(0,0,0,0.1);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-lg text-body-lg text-on-background md:px-margin-desktop md:py-margin-desktop">
+<!-- TopAppBar -->
+<header class="w-full top-0 rounded-b-xl border-b-4 border-secondary-fixed-dim bg-surface-container-high dark:bg-surface-dim shadow-md flex justify-between items-center px-panel-padding py-unit md:hidden fixed z-50 left-0">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary overflow-hidden border-2 border-secondary-fixed-dim flex items-center justify-center">
+<img alt="Profile" class="w-full h-full object-cover" data-alt="A small circular profile picture showing a smiling, weather-beaten coffee farmer wearing a classic woven straw hat. The background is a slightly blurred, lush green coffee plantation under bright, warm sunlight. The farmer has a warm, friendly expression, embodying the cozy, tactile aesthetic of a casual farm management game. The colors are rich and vibrant, leaning into earthy greens and golden browns." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDy-wIjzHYZvpptz1_QabPUtpZavQeHIGptJG50L1DhygFoDw6cm57xALVbWPbugdbeJVTqGF1uoRlujddS3-pWN0zzH8z2wpgaa8uUVZyjXxFYaM7jlsokAnDNzx-Bm5BphnIxXo2Md5cteNeUNAQEAqMraCERQODypBsMg-unAa0A_RnfZHW2Cg8xSsHimm7ywvXt4Npuu6Ids7-yMTmTDPxsuUQve0_8XbzRzOe-fyQ0fJ6VKDEOeJ78pax6vmdNbzm9JMN2Lw"/>
+</div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-primary-container drop-shadow-sm">Império do Café</h1>
+</div>
+<div class="flex items-center gap-2 bg-surface-container-lowest px-3 py-1 rounded-full border-2 border-outline-variant chip-glossy">
+<span class="material-symbols-outlined text-tertiary-container" data-weight="fill" style="font-variation-settings: 'FILL' 1;">monetization_on</span>
+<span class="font-title-md text-title-md text-on-surface">5.000</span>
+</div>
+</header>
+<div class="max-w-[800px] mx-auto w-full pt-[80px] md:pt-0 px-margin-mobile md:px-0 flex flex-col gap-gutter">
+<!-- Desktop Header Replacement (since TopAppBar is hidden on md) -->
+<div class="hidden md:flex justify-between items-center bg-surface-container-high p-4 rounded-xl shadow-md border-b-4 border-secondary-fixed-dim">
+<h1 class="font-headline-lg text-headline-lg text-primary-container drop-shadow-sm">Mercado e Corretora</h1>
+<div class="flex items-center gap-2 bg-surface-container-lowest px-4 py-2 rounded-full border-2 border-outline-variant chip-glossy">
+<span class="material-symbols-outlined text-tertiary-container" data-weight="fill" style="font-variation-settings: 'FILL' 1;">monetization_on</span>
+<span class="font-title-md text-title-md text-on-surface">R$ 5.000</span>
+</div>
+</div>
+<!-- Capacidade da Tulha -->
+<section class="panel-3d p-4 relative overflow-hidden">
+<div class="absolute top-0 right-0 p-2 opacity-10">
+<span class="material-symbols-outlined text-[100px]">warehouse</span>
+</div>
+<div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+<div>
+<h2 class="font-title-md text-title-md text-on-secondary-container mb-1">Capacidade da Tulha</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Tulha Pequena</p>
+</div>
+<div class="bg-surface px-4 py-2 rounded-lg border-2 border-outline-variant shadow-inner w-full md:w-auto">
+<div class="flex justify-between items-center mb-1">
+<span class="font-label-bold text-label-bold text-on-surface">Armazenamento</span>
+<span class="font-label-bold text-label-bold text-error">38 / 50 sacas</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-4 border border-outline-variant overflow-hidden">
+<div class="bg-error h-full rounded-full w-[76%] shadow-[inset_0_2px_4px_rgba(255,255,255,0.3)]"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Informações de Mercado (Bento Grid) -->
+<section class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+<!-- Tabela de Preços -->
+<div class="panel-3d p-4">
+<h3 class="font-title-md text-title-md text-on-secondary-container mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined">analytics</span> Referência (Tipo BR)
+                </h3>
+<div class="panel-inner p-2 flex flex-col gap-2">
+<div class="flex justify-between items-center py-1 border-b border-surface-variant">
+<span class="font-body-sm text-body-sm">Tipo 2</span>
+<span class="font-label-bold text-label-bold text-primary">R$ 1.900</span>
+</div>
+<div class="flex justify-between items-center py-1 border-b border-surface-variant">
+<span class="font-body-sm text-body-sm">Tipo 4</span>
+<span class="font-label-bold text-label-bold text-primary">R$ 1.500</span>
+</div>
+<div class="flex justify-between items-center py-1 border-b border-surface-variant">
+<span class="font-body-sm text-body-sm">Tipo 6</span>
+<span class="font-label-bold text-label-bold text-primary">R$ 1.100</span>
+</div>
+<div class="flex justify-between items-center py-1">
+<span class="font-body-sm text-body-sm">Tipo 8</span>
+<span class="font-label-bold text-label-bold text-primary">R$ 700</span>
+</div>
+</div>
+</div>
+<!-- Multiplicador SCA -->
+<div class="panel-3d p-4">
+<h3 class="font-title-md text-title-md text-on-secondary-container mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined">star_rate</span> Multiplicador SCA
+                </h3>
+<div class="panel-inner p-2 flex flex-col gap-2">
+<div class="flex justify-between items-center py-1 border-b border-surface-variant">
+<span class="font-body-sm text-body-sm text-tertiary-container font-bold">Exemplar 90+</span>
+<span class="font-label-bold text-label-bold bg-tertiary-container text-on-tertiary px-2 py-0.5 rounded-md">x5.0</span>
+</div>
+<div class="flex justify-between items-center py-1 border-b border-surface-variant">
+<span class="font-body-sm text-body-sm text-primary-container font-bold">Especial 85+</span>
+<span class="font-label-bold text-label-bold bg-primary-container text-on-primary px-2 py-0.5 rounded-md">x2.5</span>
+</div>
+<div class="flex justify-between items-center py-1 border-b border-surface-variant">
+<span class="font-body-sm text-body-sm">Fino 80+</span>
+<span class="font-label-bold text-label-bold bg-secondary text-on-secondary px-2 py-0.5 rounded-md">x1.5</span>
+</div>
+<div class="flex justify-between items-center py-1">
+<span class="font-body-sm text-body-sm">Comum &lt;80</span>
+<span class="font-label-bold text-label-bold bg-outline text-on-surface px-2 py-0.5 rounded-md">x1.0</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Lotes Disponíveis -->
+<section class="mt-4">
+<!-- Abas -->
+<div class="flex gap-2 mb-4">
+<button class="flex-1 bg-surface-container-high border-b-4 border-primary text-primary font-title-md text-title-md py-3 rounded-t-xl shadow-sm relative">
+                    Commodity (3)
+                    <div class="absolute bottom-[-4px] left-0 w-full h-1 bg-primary"></div>
+</button>
+<button class="flex-1 bg-surface-variant text-on-surface-variant font-title-md text-title-md py-3 rounded-t-xl shadow-inner border-b-4 border-transparent hover:bg-surface-container-highest transition-colors">
+                    ⭐ Microlotes (1)
+                </button>
+</div>
+<!-- Ação em Massa -->
+<div class="bg-surface-container-high border-2 border-tertiary-container rounded-xl p-4 flex flex-col md:flex-row justify-between items-center gap-4 mb-4 shadow-sm">
+<div>
+<h4 class="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-wider">VENDER TUDO DESTA ABA (90 sacas)</h4>
+<p class="font-headline-lg-mobile text-headline-lg-mobile text-primary mt-1">R$ 128.400</p>
+</div>
+<button class="btn-3d-gold w-full md:w-auto px-8 py-3 rounded-lg font-title-md text-title-md flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">payments</span>
+                    Vender tudo
+                </button>
+</div>
+<!-- Lista de Lotes -->
+<div class="flex flex-col gap-4">
+<!-- Card Lote 1 -->
+<div class="panel-3d flex overflow-hidden group">
+<div class="w-3 bg-error shrink-0"></div> <!-- Faixa Catuaí Vermelho -->
+<div class="p-4 flex-1 flex flex-col md:flex-row justify-between gap-4 bg-surface">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="text-2xl" title="Catuaí Vermelho">🍒</span>
+<h4 class="font-title-md text-title-md text-on-surface">Catuaí Vermelho</h4>
+<span class="bg-tertiary-container text-on-tertiary font-label-bold text-label-bold px-2 py-0.5 rounded-sm shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">star</span> MICROLOTE
+                                </span>
+</div>
+<div class="flex flex-wrap gap-2 mt-1">
+<div class="chip-glossy px-2 py-1 rounded-md font-label-bold text-label-bold text-on-surface flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">scale</span> 45 sacas
+                                </div>
+<div class="chip-glossy px-2 py-1 rounded-md font-label-bold text-label-bold text-primary-container">SCA 87</div>
+<div class="chip-glossy px-2 py-1 rounded-md font-label-bold text-label-bold text-on-surface-variant">BR 2</div>
+<div class="chip-glossy px-2 py-1 rounded-md font-label-bold text-label-bold text-on-surface-variant">P16</div>
+<div class="chip-glossy px-2 py-1 rounded-md font-body-sm text-body-sm text-on-surface-variant">R$ 1.426/saca</div>
+</div>
+<p class="font-body-sm text-body-sm text-outline mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">calendar_month</span> Colhido em 12/jul/Ano 4
+                            </p>
+</div>
+<div class="flex flex-col items-start md:items-end justify-center md:border-l md:border-surface-variant md:pl-4">
+<span class="font-label-bold text-label-bold text-on-surface-variant mb-1">Valor Total</span>
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-primary mb-3">R$ 64.200</span>
+<button class="btn-3d-green w-full md:w-auto px-6 py-2 rounded-lg font-title-md text-title-md">Vender</button>
+</div>
+</div>
+</div>
+<!-- Card Lote 2 (Exemplo Adicional) -->
+<div class="panel-3d flex overflow-hidden">
+<div class="w-3 bg-tertiary-fixed-dim shrink-0"></div> <!-- Faixa Bourbon Amarelo -->
+<div class="p-4 flex-1 flex flex-col md:flex-row justify-between gap-4 bg-surface">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="text-2xl">🟡</span>
+<h4 class="font-title-md text-title-md text-on-surface">Bourbon Amarelo</h4>
+</div>
+<div class="flex flex-wrap gap-2 mt-1">
+<div class="chip-glossy px-2 py-1 rounded-md font-label-bold text-label-bold text-on-surface flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">scale</span> 45 sacas
+                                </div>
+<div class="chip-glossy px-2 py-1 rounded-md font-label-bold text-label-bold text-outline">SCA 82</div>
+<div class="chip-glossy px-2 py-1 rounded-md font-label-bold text-label-bold text-on-surface-variant">BR 4</div>
+<div class="chip-glossy px-2 py-1 rounded-md font-label-bold text-label-bold text-on-surface-variant">P14</div>
+<div class="chip-glossy px-2 py-1 rounded-md font-body-sm text-body-sm text-on-surface-variant">R$ 1.426/saca</div>
+</div>
+<p class="font-body-sm text-body-sm text-outline mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">calendar_month</span> Colhido em 10/jul/Ano 4
+                            </p>
+</div>
+<div class="flex flex-col items-start md:items-end justify-center md:border-l md:border-surface-variant md:pl-4">
+<span class="font-label-bold text-label-bold text-on-surface-variant mb-1">Valor Total</span>
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-primary mb-3">R$ 64.200</span>
+<button class="btn-3d-green w-full md:w-auto px-6 py-2 rounded-lg font-title-md text-title-md">Vender</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-4 pt-2 bg-surface-container-highest dark:bg-surface-dim shadow-lg rounded-t-xl md:hidden">
+<a class="flex flex-col items-center justify-center text-secondary p-2 hover:bg-secondary-container rounded-xl active:scale-95 transition-all" href="#">
+<span class="material-symbols-outlined">agriculture</span>
+<span class="font-label-bold text-label-bold mt-1">Fazenda</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary p-2 hover:bg-secondary-container rounded-xl active:scale-95 transition-all" href="#">
+<span class="material-symbols-outlined">storefront</span>
+<span class="font-label-bold text-label-bold mt-1">Loja</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary p-2 hover:bg-secondary-container rounded-xl active:scale-95 transition-all" href="#">
+<span class="material-symbols-outlined">landscape</span>
+<span class="font-label-bold text-label-bold mt-1">Terras</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-1 shadow-[inset_0_2px_4px_rgba(255,255,255,0.3)] active:scale-95 transition-all" href="#">
+<span class="material-symbols-outlined">store</span>
+<span class="font-label-bold text-label-bold mt-1">Mercado</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary p-2 hover:bg-secondary-container rounded-xl active:scale-95 transition-all" href="#">
+<span class="material-symbols-outlined">coffee_maker</span>
+<span class="font-label-bold text-label-bold mt-1">Colheita</span>
+</a>
+</nav>
+</body></html>

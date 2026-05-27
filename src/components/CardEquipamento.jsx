@@ -84,10 +84,12 @@ export default function CardEquipamento({ equipId, equipamento }) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: tema.bg2,
-    borderWidth: 1,
-    borderColor: tema.bg3,
-    borderRadius: tema.raio,
-    padding: 12,
+    borderWidth: 2,
+    borderColor: tema.linha,
+    borderBottomWidth: 6,
+    borderBottomColor: "#cdb78c",
+    borderRadius: tema.raioGrande,
+    padding: 14,
     gap: 8,
   },
   cardPossui: {

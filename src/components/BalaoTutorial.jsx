@@ -52,9 +52,11 @@ export default function BalaoTutorial() {
 
 const styles = StyleSheet.create({
   balao: {
-    backgroundColor: "#2d2218",
+    backgroundColor: tema.bg2,
     borderWidth: 2,
-    borderColor: tema.dourado,
+    borderColor: tema.gold,
+    borderBottomWidth: 5,
+    borderBottomColor: tema.goldBase,
     borderRadius: tema.raio,
     padding: 12,
     gap: 8,
@@ -104,7 +106,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   btnPrimario: {
-    backgroundColor: tema.dourado,
+    backgroundColor: tema.gold,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: tema.raioPequeno,

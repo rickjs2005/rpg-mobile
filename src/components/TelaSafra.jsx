@@ -1,79 +1,135 @@
-import { View, Text, StyleSheet } from "react-native";
+/* ============================================================
+   TELA SAFRA — pós-colheita (design Stitch / Hay Day).
+   3 estados (fase): inativo · escolha de método · secagem.
+   Painéis chunky, barras de perfil com rótulo, ícone clay,
+   cards de método com badge. Dados/lógica reais.
+   ============================================================ */
+
+import { View, Text, Image, StyleSheet } from "react-native";
 import { useJogo } from "../hooks/useJogo.jsx";
 import Botao from "./Botao.jsx";
+import Painel from "./Painel.jsx";
 import { tema } from "../styles/tema.js";
 import { METODOS_POS, VARIEDADES } from "../data/cafe.js";
-import { UMIDADE_PRONTA, UMIDADE_INICIAL } from "../logic/pos_colheita.js";
+import { UMIDADE_INICIAL, UMIDADE_PRONTA } from "../logic/pos_colheita.js";
 import { formatarData } from "../logic/tempo.js";
 
+const IMG_SECAGEM = require("../../assets/safra/secagem.png");
 const pct = (v) => `${Math.round(v * 100)}%`;
 
-export default function TelaSafra() {
+const METODO_UI = {
+  natural: { emoji: "☀️", badge: "Comum", destaque: false },
+  cd: { emoji: "💧", badge: null, destaque: false },
+  lavado: { emoji: "🚿", badge: "⭐ Premium", destaque: true },
+};
+
+const PERFIL_UI = {
+  maduro: { emoji: "🟢", label: "Maduro", cor: tema.verde, fg: "#ffffff" },
+  verde: { emoji: "🟡", label: "Verde", cor: tema.gold, fg: "#241a00" },
+  seco: { emoji: "🟤", label: "Seco", cor: tema.madeira, fg: "#ffffff" },
+};
+
+export default function TelaSafra({ setTela }) {
   const { state, dispatch } = useJogo();
 
+  /* ---------- Estado 1: inativo ---------- */
   if (state.fase === "normal") {
     return (
-      <Text style={styles.vazio}>
-        Sem safra ativa.{"\n"}Vá pra Fazenda e colha um talhão formado no período (mai–ago).
-      </Text>
+      <View style={styles.container}>
+        <View style={styles.inativo}>
+          <Image source={IMG_SECAGEM} style={styles.inativoImg} resizeMode="contain" />
+          <Text style={styles.inativoTit}>Sem safra ativa.</Text>
+          <Text style={styles.inativoTxt}>
+            Vá para a Fazenda e colha um talhão formado no período (mai–ago).
+          </Text>
+          <Botao variante="sucesso" fullWidth onPress={() => setTela && setTela("fazenda")}>
+            🌳 Ir para a Fazenda
+          </Botao>
+        </View>
+      </View>
     );
   }
 
+  /* ---------- Estado 2: escolha de método ---------- */
   if (state.fase === "aguardando_pos") {
     const ch = state.colheitaPendente;
     const variedade = VARIEDADES[ch.variedadeId];
     return (
       <View style={styles.container}>
-        <Text style={styles.h2}>🍒 Colheita pronta</Text>
-        <View style={styles.caixa}>
-          <Linha label="Variedade" valor={variedade.nome} />
-          <Linha label="Sacas colhidas" valor={String(ch.sacas)} ultimo />
-        </View>
-        <View style={styles.caixa}>
-          <Text style={styles.caixaTitulo}>Perfil do que foi colhido</Text>
-          <Text style={styles.perfilTxt}>
-            🟢 {pct(ch.perfilColhido.maduro)} maduro
-          </Text>
-          <Text style={styles.perfilTxt}>
-            🟡 {pct(ch.perfilColhido.verde)} verde
-          </Text>
-          <Text style={styles.perfilTxt}>
-            🟤 {pct(ch.perfilColhido.seco)} seco
-          </Text>
-        </View>
+        {/* Resumo do lote */}
+        <Painel>
+          <View style={styles.resumo}>
+            <View style={styles.resumoEsq}>
+              <View style={styles.resumoIcone}>
+                <Text style={{ fontSize: 22 }}>🌿</Text>
+              </View>
+              <View>
+                <Text style={styles.resumoLabel}>LOTE COLHIDO</Text>
+                <Text style={styles.resumoNome}>{variedade.nome}</Text>
+              </View>
+            </View>
+            <View style={{ alignItems: "flex-end" }}>
+              <Text style={styles.resumoLabel}>TOTAL</Text>
+              <Text style={styles.resumoSacas}>
+                {ch.sacas} <Text style={styles.resumoSacasSub}>sacas</Text>
+              </Text>
+            </View>
+          </View>
+        </Painel>
 
-        <Text style={styles.h2}>Método de pós-colheita</Text>
-        <Text style={styles.dica}>
-          Mais caro = bebida melhor, secagem mais rápida, menor risco de chuva.
-        </Text>
+        {/* Perfil colhido */}
+        <Painel icone="📊" titulo="Perfil do que foi colhido">
+          {["maduro", "verde", "seco"].map((k) => {
+            const ui = PERFIL_UI[k];
+            const v = ch.perfilColhido[k] || 0;
+            return (
+              <View key={k} style={styles.perfilRow}>
+                <Text style={styles.perfilEmoji}>{ui.emoji}</Text>
+                <View style={styles.perfilTrack}>
+                  <View style={[styles.perfilFill, { width: `${Math.max(8, v * 100)}%`, backgroundColor: ui.cor }]}>
+                    <Text style={[styles.perfilLabel, { color: ui.fg }]} numberOfLines={1}>
+                      {ui.label}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={[styles.perfilPct, { color: ui.cor }]}>{pct(v)}</Text>
+              </View>
+            );
+          })}
+        </Painel>
+
+        <Text style={styles.h2center}>MÉTODO DE PÓS-COLHEITA</Text>
 
         {Object.entries(METODOS_POS).map(([id, m]) => {
+          const ui = METODO_UI[id] || METODO_UI.natural;
           const semGrana = state.caixa < m.custo;
           return (
-            <View key={id} style={styles.metodo}>
-              <View style={styles.metodoHeader}>
+            <View key={id} style={[styles.metodo, ui.destaque && styles.metodoDestaque]}>
+              {ui.badge && (
+                <View style={[styles.badge, ui.destaque && styles.badgeDestaque]}>
+                  <Text style={[styles.badgeTxt, ui.destaque && styles.badgeTxtDestaque]}>{ui.badge}</Text>
+                </View>
+              )}
+              <View style={styles.metodoInner}>
                 <Text style={styles.metodoNome}>{m.nome}</Text>
-                <Text style={styles.metodoCusto}>R$ {m.custo}</Text>
+                <View style={styles.metodoIcone}>
+                  <Text style={{ fontSize: 40 }}>{ui.emoji}</Text>
+                </View>
+                <View style={styles.statsBox}>
+                  <Stat label="💰 Custo" valor={m.custo === 0 ? "Grátis" : `R$ ${m.custo.toLocaleString("pt-BR")}`} cor={m.custo === 0 ? tema.dourado : tema.texto} />
+                  <Stat label="⏱️ Tempo" valor={`${m.diasSecagem} dias`} />
+                  <Stat label="☕ Qualidade" valor={`+${pct(m.bonusBebida)}`} cor={m.bonusBebida > 0 ? tema.verde : tema.texto} />
+                  <Stat label="🌧️ Risco chuva" valor={pct(m.riscoChuva)} cor={m.riscoChuva >= 0.9 ? tema.vermelho : m.riscoChuva >= 0.6 ? tema.dourado : tema.verde} />
+                </View>
+                <Botao
+                  variante={semGrana ? "fantasma" : "sucesso"}
+                  fullWidth
+                  disabled={semGrana}
+                  onPress={() => dispatch({ type: "INICIAR_POS_COLHEITA", payload: { metodoPos: id } })}
+                >
+                  {semGrana ? "Caixa insuficiente" : "Iniciar secagem"}
+                </Botao>
               </View>
-              <Text style={styles.metodoDesc}>{m.desc}</Text>
-              <View style={styles.metodoStats}>
-                <Text style={styles.metodoStat}>⏱️ {m.diasSecagem} dias</Text>
-                <Text style={styles.metodoStat}>☕ +{pct(m.bonusBebida)} bebida</Text>
-                <Text style={styles.metodoStat}>🌧️ risco {pct(m.riscoChuva)}</Text>
-              </View>
-              <Botao
-                fullWidth
-                variante={semGrana ? "fantasma" : "primario"}
-                disabled={semGrana}
-                onPress={() =>
-                  dispatch({
-                    type: "INICIAR_POS_COLHEITA",
-                    payload: { metodoPos: id },
-                  })
-                }
-              >
-                {semGrana ? "Caixa insuficiente" : "Iniciar secagem"}
-              </Botao>
             </View>
           );
         })}
@@ -81,167 +137,180 @@ export default function TelaSafra() {
     );
   }
 
-  // fase === 'secagem'
+  /* ---------- Estado 3: secagem ---------- */
   const lote = state.loteSecagem;
   const variedade = VARIEDADES[lote.variedadeId];
-  const progresso =
-    (UMIDADE_INICIAL - lote.umidade) / (UMIDADE_INICIAL - UMIDADE_PRONTA);
   const metodo = METODOS_POS[lote.metodoPos];
+  const progresso = (UMIDADE_INICIAL - lote.umidade) / (UMIDADE_INICIAL - UMIDADE_PRONTA);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.h2}>🌡️ Secando</Text>
-      <View style={styles.caixa}>
-        <Linha label="Variedade" valor={variedade.nome} />
-        <Linha label="Sacas" valor={String(lote.sacas)} />
-        <Linha label="Método" valor={metodo.nome} />
-        <Linha label="Dias no terreiro" valor={String(lote.dias)} />
-        <Linha label="Iniciado em" valor={formatarData(state.tempo)} ultimo />
+      <View style={styles.secandoPill}>
+        <Text style={styles.secandoTxt}>🌡️ SECANDO</Text>
       </View>
 
-      <View style={styles.caixa}>
-        <Text style={styles.caixaTitulo}>
-          Umidade: {pct(lote.umidade)} → precisa chegar a {pct(UMIDADE_PRONTA)}
+      <Painel>
+        <Image source={IMG_SECAGEM} style={styles.secagemBanner} resizeMode="contain" />
+        <View style={styles.grid}>
+          <Campo label="Variedade" valor={variedade.nome} />
+          <Campo label="Sacas" valor={String(lote.sacas)} />
+          <Campo label="Método" valor={metodo.nome} />
+          <Campo label="Dias no terreiro" valor={String(lote.dias)} />
+          <Campo label="Iniciado em" valor={formatarData(state.tempo)} full />
+        </View>
+      </Painel>
+
+      <Painel>
+        <Text style={styles.umidLabel}>
+          💧 Umidade: {pct(lote.umidade)} → meta {pct(UMIDADE_PRONTA)}
         </Text>
-        <View style={styles.barra}>
+        <View style={styles.umidBarra}>
           <View
-            style={[
-              styles.barraFill,
-              { width: `${Math.min(100, Math.max(0, progresso * 100))}%` },
-            ]}
+            style={[styles.umidFill, { width: `${Math.min(100, Math.max(0, progresso * 100))}%` }]}
           />
         </View>
         <Text style={styles.dica}>
-          Avance os dias no botão do topo. O clima sorteado afeta a velocidade —
-          chuva faz o lote absorver umidade de volta.
+          📍 Avance os dias no botão do topo. O clima sorteado afeta a velocidade — chuva faz o
+          lote absorver umidade de volta.
         </Text>
-      </View>
+      </Painel>
     </View>
   );
 }
 
-function Linha({ label, valor, ultimo }) {
+/* ---------- Sub-componentes ---------- */
+function Stat({ label, valor, cor }) {
   return (
-    <View style={[linhaStyles.row, ultimo && { borderBottomWidth: 0 }]}>
-      <Text style={linhaStyles.label}>{label}</Text>
-      <Text style={linhaStyles.valor}>{valor}</Text>
+    <View style={styles.statRow}>
+      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={[styles.statValor, cor && { color: cor }]}>{valor}</Text>
     </View>
   );
 }
-
-const linhaStyles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 5,
-    borderBottomWidth: 1,
-    borderBottomColor: tema.bg3,
-    borderStyle: "dashed",
-    gap: 8,
-  },
-  label: {
-    color: tema.textoDim,
-    fontSize: 13,
-  },
-  valor: {
-    color: tema.texto,
-    fontSize: 13,
-    textAlign: "right",
-    fontVariant: ["tabular-nums"],
-    flexShrink: 1,
-  },
-});
+function Campo({ label, valor, full }) {
+  return (
+    <View style={[styles.campo, full && { width: "100%" }]}>
+      <Text style={styles.campoLabel}>{label}</Text>
+      <Text style={styles.campoValor}>{valor}</Text>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
-  container: { gap: 12 },
-  h2: {
-    color: tema.dourado,
-    fontSize: 14,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-  },
-  caixa: {
+  container: { gap: 16 },
+
+  /* Inativo */
+  inativo: {
     backgroundColor: tema.bg2,
-    borderWidth: 1,
-    borderColor: tema.bg3,
-    borderRadius: tema.raio,
-    padding: 12,
-    gap: 4,
-  },
-  caixaTitulo: {
-    color: tema.textoDim,
-    fontSize: 11,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-    marginBottom: 4,
-  },
-  perfilTxt: {
-    color: tema.texto,
-    fontSize: 13,
-    paddingVertical: 2,
-  },
-  vazio: {
-    textAlign: "center",
-    color: tema.textoFraco,
-    paddingVertical: 50,
-    fontSize: 13,
-    lineHeight: 22,
-  },
-  dica: {
-    color: tema.textoDim,
-    fontSize: 12,
-    lineHeight: 17,
-    marginTop: 6,
-  },
-  metodo: {
-    backgroundColor: tema.bg2,
-    borderWidth: 1,
-    borderColor: tema.bg3,
-    borderRadius: tema.raio,
-    padding: 12,
-    gap: 8,
-  },
-  metodoHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    borderRadius: 18,
+    borderWidth: 4,
+    borderColor: tema.madeira,
+    borderBottomWidth: 10,
+    borderBottomColor: tema.madeiraBase,
+    padding: 20,
     alignItems: "center",
+    gap: 12,
+    marginTop: 8,
   },
-  metodoNome: {
-    color: tema.texto,
-    fontSize: 14,
-    fontWeight: "600",
+  inativoImg: { width: 160, height: 160 },
+  inativoTit: { color: tema.texto, fontSize: 20, fontWeight: "800" },
+  inativoTxt: { color: tema.textoDim, fontSize: 14, lineHeight: 20, textAlign: "center" },
+
+  /* Resumo do lote */
+  resumo: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  resumoEsq: { flexDirection: "row", alignItems: "center", gap: 10 },
+  resumoIcone: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: tema.secondaryFixedDim || "#f6b99d",
+    alignItems: "center", justifyContent: "center",
   },
-  metodoCusto: {
-    color: tema.dourado,
-    fontWeight: "600",
-    fontVariant: ["tabular-nums"],
+  resumoLabel: { color: tema.textoDim, fontSize: 10, fontWeight: "800", letterSpacing: 0.5 },
+  resumoNome: { color: tema.texto, fontSize: 18, fontWeight: "800" },
+  resumoSacas: { color: tema.verde, fontSize: 26, fontWeight: "800" },
+  resumoSacasSub: { color: tema.textoDim, fontSize: 13, fontWeight: "500" },
+
+  /* Perfil */
+  perfilRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 },
+  perfilEmoji: { fontSize: 18, width: 24, textAlign: "center" },
+  perfilTrack: {
+    flex: 1, height: 24, borderRadius: 999,
+    backgroundColor: tema.surfaceVariant || "#ece2c9", overflow: "hidden",
   },
-  metodoDesc: {
-    color: tema.texto,
-    fontSize: 12,
-    lineHeight: 17,
-    opacity: 0.78,
+  perfilFill: { height: "100%", borderRadius: 999, justifyContent: "center", paddingLeft: 10, minWidth: 50 },
+  perfilLabel: { fontSize: 12, fontWeight: "800" },
+  perfilPct: { width: 44, textAlign: "right", fontSize: 15, fontWeight: "800", fontVariant: ["tabular-nums"] },
+
+  h2center: {
+    color: tema.madeira, fontSize: 18, fontWeight: "800",
+    textAlign: "center", letterSpacing: 0.5, marginTop: 4,
   },
-  metodoStats: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+
+  /* Método */
+  metodo: {
+    backgroundColor: "#ece2c9",
+    borderRadius: 20,
+    borderWidth: 4,
+    borderColor: tema.madeira,
+    borderBottomWidth: 8,
+    borderBottomColor: tema.madeiraBase,
+    padding: 8,
+  },
+  metodoDestaque: { borderColor: tema.gold, borderBottomColor: tema.goldBorda },
+  metodoInner: {
+    backgroundColor: tema.creme,
+    borderRadius: 14,
+    padding: 14,
+    alignItems: "center",
     gap: 10,
   },
-  metodoStat: {
-    color: tema.texto,
-    fontSize: 11,
-    opacity: 0.85,
+  metodoNome: { color: tema.texto, fontSize: 18, fontWeight: "800" },
+  metodoIcone: {
+    width: 84, height: 84, borderRadius: 42,
+    backgroundColor: tema.bg3, borderWidth: 3, borderColor: tema.creme,
+    alignItems: "center", justifyContent: "center",
   },
-  barra: {
-    backgroundColor: tema.bg3,
-    borderRadius: 4,
-    height: 12,
-    overflow: "hidden",
+  badge: {
+    position: "absolute", top: -2, right: 12, zIndex: 2,
+    backgroundColor: tema.bg3, borderRadius: 999,
+    paddingHorizontal: 12, paddingVertical: 4,
+    borderWidth: 2, borderColor: tema.creme,
+  },
+  badgeDestaque: { backgroundColor: tema.gold, right: undefined, alignSelf: "center", left: "38%" },
+  badgeTxt: { color: tema.textoDim, fontSize: 11, fontWeight: "800" },
+  badgeTxtDestaque: { color: "#3d2e00" },
+  statsBox: {
+    alignSelf: "stretch", backgroundColor: tema.bg3, borderRadius: 12, padding: 12, gap: 8,
+  },
+  statRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  statLabel: { color: tema.textoDim, fontSize: 13 },
+  statValor: { color: tema.texto, fontSize: 14, fontWeight: "800", fontVariant: ["tabular-nums"] },
+
+  /* Secagem */
+  secandoPill: {
+    alignSelf: "center",
+    backgroundColor: tema.madeira,
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    paddingVertical: 6,
     marginTop: 4,
   },
-  barraFill: {
-    backgroundColor: tema.azul,
-    height: "100%",
+  secandoTxt: { color: "#fff", fontSize: 13, fontWeight: "800", letterSpacing: 1 },
+  secagemBanner: { width: "100%", height: 150, marginBottom: 12 },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  campo: {
+    width: "47%", flexGrow: 1,
+    backgroundColor: tema.bg3, borderRadius: 10,
+    borderWidth: 1, borderColor: tema.linha,
+    paddingVertical: 8, paddingHorizontal: 10, gap: 1,
   },
+  campoLabel: { color: tema.textoDim, fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.3 },
+  campoValor: { color: tema.texto, fontSize: 14, fontWeight: "700" },
+
+  umidLabel: { color: tema.texto, fontSize: 14, fontWeight: "700", marginBottom: 8 },
+  umidBarra: {
+    backgroundColor: tema.bg3, borderRadius: 999, height: 16, overflow: "hidden",
+    borderWidth: 1, borderColor: tema.linha,
+  },
+  umidFill: { backgroundColor: tema.azul, height: "100%", borderRadius: 999 },
+  dica: { color: tema.textoDim, fontSize: 12, lineHeight: 17, marginTop: 10 },
 });

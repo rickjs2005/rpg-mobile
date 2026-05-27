@@ -1,26 +1,21 @@
 /* ============================================================
-   TIMELINE — strip horizontal do ano agrícola.
-   Mostra marcos do ciclo (florada, granação, colheita) +
-   posição atual do jogador. Inspirado em "estágio visual" do
-   Stardew Valley — comunica sem palavras.
+   TIMELINE — calendário da safra (design Stitch / Hay Day).
+   Scroll horizontal dos 12 meses; mês atual maior, borda dourada
+   com base 3D e ponto acima. Banner de dica dourado embaixo.
+   Tudo dentro da "moldura dupla" (Painel).
    ============================================================ */
 
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { useJogo } from "../hooks/useJogo.jsx";
 import { tema } from "../styles/tema.js";
+import Painel from "./Painel.jsx";
 
-const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const MESES = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
 
 const EVENTOS = {
-  1: { tipo: "granacao", icone: "💧", cor: tema.azul, label: "Granação" },
-  2: { tipo: "granacao", icone: "💧", cor: tema.azul, label: "Granação" },
-  3: { tipo: "granacao", icone: "💧", cor: tema.azul, label: "Granação" },
-  5: { tipo: "colheita", icone: "🍒", cor: tema.verde, label: "Colheita" },
-  6: { tipo: "colheita", icone: "🍒", cor: tema.verde, label: "Colheita" },
-  7: { tipo: "colheita", icone: "🍒", cor: tema.verde, label: "Colheita" },
-  8: { tipo: "colheita", icone: "🍒", cor: tema.verde, label: "Colheita" },
-  9: { tipo: "florada", icone: "🌸", cor: tema.dourado, label: "Florada" },
-  10: { tipo: "florada", icone: "🌸", cor: tema.dourado, label: "Florada" },
+  1: "💧", 2: "💧", 3: "💧",
+  5: "🍒", 6: "🍒", 7: "🍒", 8: "🍒",
+  9: "🌸", 10: "🌸",
 };
 
 export default function Timeline() {
@@ -28,173 +23,125 @@ export default function Timeline() {
   const mes = state.tempo.mes;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.cabecalho}>
-        <Text style={styles.titulo}>Calendário da safra</Text>
-        <Text style={styles.ano}>Ano {state.tempo.ano}</Text>
-      </View>
-
-      <View style={styles.linha}>
+    <Painel icone="📅" titulo="Timeline da Safra">
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.linha}
+      >
         {MESES.map((nome, i) => {
           const m = i + 1;
-          const ev = EVENTOS[m];
+          const emoji = EVENTOS[m];
           const atual = m === mes;
           return (
-            <View
-              key={m}
-              style={[
-                styles.chip,
-                ev && { borderColor: ev.cor, backgroundColor: ev.cor + "15" },
-                atual && styles.chipAtual,
-              ]}
-            >
-              {ev ? (
-                <Text style={styles.chipIcone}>{ev.icone}</Text>
-              ) : (
-                <Text style={styles.chipIconeFaint}>·</Text>
-              )}
-              <Text style={[styles.chipMes, atual && styles.chipMesAtual]}>
-                {nome[0].toUpperCase()}
-              </Text>
-              {atual && <View style={styles.marker} />}
+            <View key={m} style={styles.col}>
+              {atual && <View style={styles.dot} />}
+              <Text style={[styles.mes, atual && styles.mesAtual]}>{nome}</Text>
+              <View style={[styles.quadro, atual ? styles.quadroAtual : styles.quadroOff]}>
+                <Text style={styles.emoji}>{emoji || "·"}</Text>
+              </View>
             </View>
           );
         })}
-      </View>
+      </ScrollView>
 
-      <View style={styles.legenda}>
-        <View style={styles.legendaItem}>
-          <Text style={styles.legendaIcone}>💧</Text>
-          <Text style={styles.legendaTxt}>Granação</Text>
-        </View>
-        <View style={styles.legendaItem}>
-          <Text style={styles.legendaIcone}>🍒</Text>
-          <Text style={styles.legendaTxt}>Colheita</Text>
-        </View>
-        <View style={styles.legendaItem}>
-          <Text style={styles.legendaIcone}>🌸</Text>
-          <Text style={styles.legendaTxt}>Florada</Text>
-        </View>
+      <View style={styles.banner}>
+        <Text style={styles.bannerIcone}>{iconeDica(mes, state)}</Text>
+        <Text style={styles.bannerTxt}>{dicaPorMes(mes, state)}</Text>
       </View>
-
-      {/* Dica contextual baseada no mês */}
-      <Text style={styles.dica}>
-        {dicaPorMes(mes, state)}
-      </Text>
-    </View>
+    </Painel>
   );
 }
 
+function iconeDica(mes, state) {
+  if (state.fase === "secagem") return "🌡️";
+  if (state.fase === "aguardando_pos") return "📦";
+  if (mes >= 1 && mes <= 3) return "💧";
+  if (mes >= 5 && mes <= 8) return "🍒";
+  if (mes === 9 || mes === 10) return "🌸";
+  return "🌱";
+}
+
 function dicaPorMes(mes, state) {
-  if (state.fase === "secagem") return "🌡️ Secagem em curso (1 dia/avanço).";
-  if (state.fase === "aguardando_pos") return "📦 Escolha método pós em Safra.";
-  if (mes >= 1 && mes <= 3) return "💧 Granação ativa — chuva enche o grão.";
-  if (mes === 4) return "Período vegetativo. Aguarde colheita em maio.";
-  if (mes >= 5 && mes <= 8) return "🍒 Janela de colheita aberta!";
-  if (mes === 9 || mes === 10) return "🌸 Janela de florada — veranico + chuva = nova safra encaminhada.";
-  if (mes === 11) return "Desenvolvimento do fruto após florada.";
+  if (state.fase === "secagem") return "Secagem em curso (1 dia por avanço).";
+  if (state.fase === "aguardando_pos") return "Escolha o método de pós-colheita em Safra.";
+  if (mes >= 1 && mes <= 3) return "Granação ativa — a chuva enche o grão.";
+  if (mes === 4) return "Período vegetativo. Aguarde a colheita em maio.";
+  if (mes >= 5 && mes <= 8) return "Janela de colheita aberta!";
+  if (mes === 9 || mes === 10) return "Florada — veranico + chuva encaminham a nova safra.";
+  if (mes === 11) return "Desenvolvimento do fruto após a florada.";
   return "Desenvolvimento do fruto.";
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: tema.bg2,
-    borderWidth: 1,
-    borderColor: tema.bg3,
-    borderRadius: tema.raio,
-    padding: 10,
-    gap: 8,
-  },
-  cabecalho: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  titulo: {
-    color: tema.textoDim,
-    fontSize: 11,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-  },
-  ano: {
-    color: tema.dourado,
-    fontSize: 12,
-    fontWeight: "600",
-  },
   linha: {
-    flexDirection: "row",
-    gap: 3,
+    gap: 8,
+    paddingVertical: 2,
+    paddingRight: 4,
   },
-  chip: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: tema.bg3,
-    borderRadius: tema.raioPequeno,
-    paddingVertical: 4,
+  col: {
     alignItems: "center",
-    gap: 1,
+    minWidth: 52,
     position: "relative",
-    minHeight: 38,
+    paddingTop: 8,
+  },
+  dot: {
+    position: "absolute",
+    top: 0,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: tema.gold,
+    borderWidth: 2,
+    borderColor: tema.goldBorda,
+  },
+  mes: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: tema.textoDim,
+    marginBottom: 4,
+  },
+  mesAtual: { color: tema.madeira },
+  quadro: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
     justifyContent: "center",
   },
-  chipAtual: {
+  quadroOff: {
     backgroundColor: tema.bg3,
-    borderColor: tema.dourado,
+    borderWidth: 1,
+    borderColor: tema.linha,
+    opacity: 0.7,
+  },
+  quadroAtual: {
+    width: 50,
+    height: 50,
+    backgroundColor: tema.creme,
     borderWidth: 2,
+    borderColor: tema.gold,
+    borderBottomWidth: 5,
+    borderBottomColor: tema.goldBase,
   },
-  chipIcone: {
-    fontSize: 12,
-    lineHeight: 14,
-  },
-  chipIconeFaint: {
-    color: tema.textoFraco,
-    fontSize: 12,
-    lineHeight: 14,
-  },
-  chipMes: {
-    color: tema.textoDim,
-    fontSize: 9,
-    fontWeight: "600",
-  },
-  chipMesAtual: {
-    color: tema.dourado,
-  },
-  marker: {
-    position: "absolute",
-    bottom: -4,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: tema.dourado,
-  },
-  legenda: {
+  emoji: { fontSize: 20, lineHeight: 24 },
+  banner: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    paddingTop: 6,
-    paddingBottom: 2,
-    borderTopWidth: 1,
-    borderTopColor: tema.bg3,
-    borderStyle: "dashed",
-    marginTop: 4,
-  },
-  legendaItem: {
-    flexDirection: "row",
-    gap: 4,
     alignItems: "center",
+    gap: 10,
+    marginTop: 14,
+    backgroundColor: "#ffdf92",
+    borderWidth: 1,
+    borderColor: "#d3a500",
+    borderRadius: 12,
+    padding: 12,
   },
-  legendaIcone: {
-    fontSize: 11,
-  },
-  legendaTxt: {
-    color: tema.textoDim,
-    fontSize: 10,
-  },
-  dica: {
-    color: tema.texto,
-    fontSize: 11,
-    fontStyle: "italic",
-    textAlign: "center",
-    paddingTop: 2,
+  bannerIcone: { fontSize: 22 },
+  bannerTxt: {
+    flex: 1,
+    color: "#503d00",
+    fontSize: 13,
+    fontWeight: "600",
+    lineHeight: 18,
   },
 });

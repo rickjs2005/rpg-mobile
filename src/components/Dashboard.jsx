@@ -248,8 +248,10 @@ export default function Dashboard({ visible, onClose }) {
 function Section({ titulo, children }) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitulo}>{titulo}</Text>
-      <View style={styles.sectionBody}>{children}</View>
+      <View style={styles.sectionInner}>
+        <Text style={styles.sectionTitulo}>{titulo}</Text>
+        <View style={styles.sectionBody}>{children}</View>
+      </View>
     </View>
   );
 }
@@ -285,15 +287,24 @@ const styles = StyleSheet.create({
 
   section: {
     backgroundColor: tema.bg2,
-    borderWidth: 1,
-    borderColor: tema.bg3,
-    borderRadius: tema.raio,
+    borderRadius: 18,
+    borderWidth: 4,
+    borderColor: tema.madeira,
+    borderBottomWidth: 10,
+    borderBottomColor: tema.madeiraBase,
+    padding: 4,
+  },
+  sectionInner: {
+    backgroundColor: "#fdf3da",
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: tema.linha,
     overflow: "hidden",
   },
   sectionTitulo: {
-    color: tema.dourado,
-    fontSize: 11,
-    fontWeight: "600",
+    color: tema.madeira,
+    fontSize: 13,
+    fontWeight: "800",
     letterSpacing: 0.5,
     textTransform: "uppercase",
     paddingHorizontal: 12,

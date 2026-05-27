@@ -4,6 +4,7 @@ import { useJogo } from "../hooks/useJogo.jsx";
 import CardTalhao from "./CardTalhao.jsx";
 import Timeline from "./Timeline.jsx";
 import HistoricoEventos from "./HistoricoEventos.jsx";
+import Painel from "./Painel.jsx";
 import { tema } from "../styles/tema.js";
 import { INSUMOS } from "../data/economia.js";
 import { formatarData } from "../logic/tempo.js";
@@ -30,54 +31,59 @@ export default function TelaFazenda() {
     <View style={styles.container}>
       <Timeline />
 
-      <View style={styles.caixa}>
-        <Text style={styles.caixaTitulo}>Inventário de insumos</Text>
-        <View style={styles.inv}>
-          {Object.entries(INSUMOS).map(([id, ins]) => (
-            <View key={id} style={styles.invItem}>
-              <Text style={styles.invTxt}>
-                {ins.icone} {ins.nome}
-              </Text>
-              <Text style={styles.invQtd}>{state.inventario[id] || 0}</Text>
-            </View>
-          ))}
+      {/* Inventário em grade */}
+      <Painel icone="📦" titulo="Inventário">
+        <View style={styles.invGrid}>
+          {Object.entries(INSUMOS).map(([id, ins]) => {
+            const qtd = state.inventario[id] || 0;
+            const vazio = qtd === 0;
+            return (
+              <View key={id} style={[styles.invTile, vazio && styles.invTileVazio]}>
+                <View style={styles.invIcone}>
+                  <Text style={styles.invEmoji}>{ins.icone}</Text>
+                </View>
+                <Text style={styles.invNome} numberOfLines={1}>
+                  {ins.nome}
+                </Text>
+                <View style={[styles.invPill, vazio && styles.invPillVazio]}>
+                  <Text style={[styles.invPillTxt, vazio && styles.invPillTxtVazio]}>
+                    {qtd}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
         </View>
-      </View>
+      </Painel>
 
-      <Text style={styles.h2}>Talhões ({state.talhoes.length})</Text>
+      {/* Talhões */}
+      <Text style={styles.h2}>🌾 Talhões ({state.talhoes.length})</Text>
       <View style={styles.lista}>
         {state.talhoes.map((t) => (
           <CardTalhao key={t.id} talhao={t} />
         ))}
       </View>
 
+      {/* Eventos recentes */}
       {eventos.length > 0 && (
-        <View style={styles.caixa}>
-          <View style={styles.eventosCabecalho}>
-            <Text style={styles.caixaTitulo}>
-              Eventos recentes ({eventos.length})
-            </Text>
-            <Pressable
-              onPress={() => setHistAberto(true)}
-              style={styles.verTodosBtn}
-            >
-              <Text style={styles.verTodosTxt}>Ver tudo →</Text>
+        <Painel
+          icone="🕘"
+          titulo={`Eventos recentes (${eventos.length})`}
+          headerRight={
+            <Pressable onPress={() => setHistAberto(true)} hitSlop={8}>
+              <Text style={styles.verTodos}>Ver tudo →</Text>
             </Pressable>
-          </View>
-          <View>
+          }
+        >
+          <View style={styles.evLista}>
             {eventos.slice(0, 5).map((ev, i) => (
-              <View
-                key={i}
-                style={[styles.eventoLinha, { opacity: 1 - i * 0.1 }]}
-              >
-                <Text style={styles.eventoData}>
-                  {formatarData(ev.tempo)}
-                </Text>
-                <Text style={styles.eventoTxt}>{ev.texto}</Text>
+              <View key={i} style={styles.evRow}>
+                <Text style={styles.evData}>{formatarData(ev.tempo)}</Text>
+                <Text style={styles.evTxt}>{ev.texto}</Text>
               </View>
             ))}
           </View>
-        </View>
+        </Painel>
       )}
 
       <HistoricoEventos
@@ -90,77 +96,96 @@ export default function TelaFazenda() {
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 14 },
-  caixa: {
-    backgroundColor: tema.bg2,
+  container: { gap: 16 },
+
+  h2: {
+    color: tema.madeira,
+    fontSize: 18,
+    fontWeight: "800",
+    letterSpacing: 0.3,
+    paddingLeft: 4,
+  },
+  lista: { gap: 12 },
+
+  /* Inventário em grade */
+  invGrid: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  invTile: {
+    flex: 1,
+    backgroundColor: tema.bg3,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: tema.bg3,
-    borderRadius: tema.raio,
-    padding: 12,
-    gap: 8,
+    borderColor: tema.linha,
+    paddingVertical: 12,
+    paddingHorizontal: 6,
+    alignItems: "center",
+    gap: 6,
   },
-  caixaTitulo: {
-    color: tema.textoDim,
+  invTileVazio: { opacity: 0.5 },
+  invIcone: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: tema.creme,
+    borderWidth: 1,
+    borderColor: tema.linha,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  invEmoji: { fontSize: 24, lineHeight: 28 },
+  invNome: {
     fontSize: 11,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
+    fontWeight: "700",
+    color: tema.textoDim,
+    textAlign: "center",
   },
-  inv: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  invItem: {
-    flexDirection: "row",
-    gap: 4,
+  invPill: {
+    minWidth: 28,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: tema.goldBorda,
     alignItems: "center",
   },
-  invTxt: {
+  invPillVazio: { backgroundColor: "#c1c9b9" },
+  invPillTxt: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "800",
+    fontVariant: ["tabular-nums"],
+  },
+  invPillTxtVazio: { color: tema.texto },
+
+  /* Eventos */
+  verTodos: {
+    color: tema.verde,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  evLista: { gap: 8 },
+  evRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    backgroundColor: tema.bg3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: tema.linha,
+    padding: 10,
+  },
+  evData: {
+    color: tema.textoDim,
+    fontSize: 11,
+    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
+    minWidth: 76,
+    marginTop: 1,
+  },
+  evTxt: {
     color: tema.texto,
     fontSize: 13,
-  },
-  invQtd: {
-    color: tema.dourado,
-    fontWeight: "600",
-    fontVariant: ["tabular-nums"],
-  },
-  h2: {
-    color: tema.dourado,
-    fontSize: 14,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-  },
-  lista: { gap: 10 },
-  eventosCabecalho: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  verTodosBtn: {
-    paddingHorizontal: 4,
-  },
-  verTodosTxt: {
-    color: tema.dourado,
-    fontSize: 11,
-    fontWeight: "500",
-  },
-  eventoLinha: {
-    flexDirection: "row",
-    gap: 8,
-    paddingVertical: 3,
-    alignItems: "flex-start",
-  },
-  eventoData: {
-    color: tema.textoDim,
-    fontSize: 10,
-    fontVariant: ["tabular-nums"],
-    width: 80,
-    marginTop: 2,
-  },
-  eventoTxt: {
-    color: tema.texto,
-    fontSize: 12,
     lineHeight: 18,
     flex: 1,
   },

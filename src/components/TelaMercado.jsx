@@ -1,73 +1,100 @@
+/* ============================================================
+   TELA MERCADO — "Mercado e Corretora" (design Stitch / Hay Day).
+   Painel da tulha com barra, bento das tabelas (Tipo BR + SCA),
+   abas Commodity/Microlotes, painel dourado "vender tudo", lotes.
+   Preços REAIS via logic/precos (= o que será creditado).
+   ============================================================ */
+
 import { useState } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useJogo } from "../hooks/useJogo.jsx";
-import Botao from "./Botao.jsx";
 import CardLote from "./CardLote.jsx";
+import Painel from "./Painel.jsx";
+import Botao from "./Botao.jsx";
 import { tema } from "../styles/tema.js";
-import {
-  PRECO_TIPO_BRASIL,
-  SCA_LIMIARES,
-  LIMIAR_MICROLOTE_SCA,
-} from "../data/constantes.js";
+import { PRECO_TIPO_BRASIL, SCA_LIMIARES, LIMIAR_MICROLOTE_SCA } from "../data/constantes.js";
 import { TULHAS } from "../data/economia.js";
+import { valorLote } from "../logic/precos.js";
+
+const SCA_COR = {
+  "Exemplar (90+)": { bg: tema.gold, fg: "#3d2e00" },
+  "Especial (85+)": { bg: tema.primaryFixed || "#aef597", fg: "#022200" },
+  "Premium (80+)": { bg: tema.madeira, fg: "#fff" },
+  "Comercial": { bg: "#c1c9b9", fg: tema.texto },
+};
 
 export default function TelaMercado() {
   const { state, dispatch } = useJogo();
-  const [aba, setAba] = useState("commodity"); // 'commodity' | 'microlote'
+  const [aba, setAba] = useState("commodity");
 
   const microlotes = state.estoqueSacas.filter((l) => l.microlote);
   const commodity = state.estoqueSacas.filter((l) => !l.microlote);
   const sacasTotal = state.estoqueSacas.reduce((a, l) => a + l.sacas, 0);
   const tulha = TULHAS[state.tulha || "pequena"];
+  const cap = tulha.capacidade;
+  const pctTulha = Math.min(100, cap ? (sacasTotal / cap) * 100 : 0);
+  const cheio = sacasTotal >= cap;
+  const corTulha = cheio ? tema.vermelho : pctTulha > 70 ? tema.gold : tema.verde;
 
   const lista = aba === "microlote" ? microlotes : commodity;
-  const totalLista = lista.reduce((acc, l) => acc + l.sacas * l.precoPorSaca, 0);
-  const sacasLista = lista.reduce((acc, l) => acc + l.sacas, 0);
+  const sacasLista = lista.reduce((a, l) => a + l.sacas, 0);
+  const totalLista = lista.reduce((a, l) => a + valorLote(state, l), 0);
+
+  const venderAba = () => {
+    for (const l of lista) dispatch({ type: "VENDER_LOTE", payload: { loteId: l.id } });
+  };
 
   return (
     <View style={styles.container}>
-      {/* Capacidade da tulha */}
-      <View style={styles.caixa}>
-        <Text style={styles.subTitulo}>
-          {tulha.icone} {tulha.nome}
-        </Text>
-        <Text style={[styles.tabPreco, { color: sacasTotal >= tulha.capacidade ? tema.vermelho : tema.dourado }]}>
-          {sacasTotal} / {tulha.capacidade} sacas armazenadas
-        </Text>
-      </View>
-
-      {/* Tabela de preços */}
-      <Text style={styles.h2}>Tabela de preços</Text>
-      <View style={styles.caixa}>
-        <Text style={styles.subTitulo}>Por Tipo BRASIL</Text>
-        {Object.entries(PRECO_TIPO_BRASIL).map(([tipo, preco], i, arr) => (
-          <View
-            key={tipo}
-            style={[styles.tabLinha, i === arr.length - 1 && { borderBottomWidth: 0 }]}
-          >
-            <Text style={styles.tabNome}>Tipo {tipo}</Text>
-            <Text style={styles.tabPreco}>R$ {preco.toLocaleString("pt-BR")}</Text>
+      {/* ---------- Capacidade da Tulha ---------- */}
+      <Painel icone="🏭" titulo="Capacidade da Tulha">
+        <Text style={styles.tulhaNome}>{tulha.icone} {tulha.nome}</Text>
+        <View style={styles.tulhaBox}>
+          <View style={styles.tulhaLinha}>
+            <Text style={styles.tulhaLabel}>Armazenamento</Text>
+            <Text style={[styles.tulhaVal, { color: corTulha }]}>
+              {sacasTotal} / {cap} sacas
+            </Text>
           </View>
-        ))}
-      </View>
-
-      <View style={styles.caixa}>
-        <Text style={styles.subTitulo}>Multiplicador SCA</Text>
-        {SCA_LIMIARES.map((linha, i) => (
-          <View
-            key={linha.classe}
-            style={[
-              styles.tabLinha,
-              i === SCA_LIMIARES.length - 1 && { borderBottomWidth: 0 },
-            ]}
-          >
-            <Text style={styles.tabNome}>{linha.classe}</Text>
-            <Text style={styles.tabPreco}>× {linha.mult.toFixed(1)}</Text>
+          <View style={styles.barra}>
+            <View style={[styles.barraFill, { width: `${pctTulha}%`, backgroundColor: corTulha }]}>
+              <View style={styles.barraShine} />
+            </View>
           </View>
-        ))}
+        </View>
+      </Painel>
+
+      {/* ---------- Bento: tabelas ---------- */}
+      <View style={styles.bento}>
+        <Painel icone="📊" titulo="Tipo BR" style={styles.bentoItem}>
+          <View style={styles.tabInner}>
+            {Object.entries(PRECO_TIPO_BRASIL).map(([tipo, preco], i, arr) => (
+              <View key={tipo} style={[styles.tabRow, i === arr.length - 1 && styles.tabRowLast]}>
+                <Text style={styles.tabNome}>Tipo {tipo}</Text>
+                <Text style={styles.tabPreco}>R$ {preco.toLocaleString("pt-BR")}</Text>
+              </View>
+            ))}
+          </View>
+        </Painel>
+
+        <Painel icone="⭐" titulo="SCA" style={styles.bentoItem}>
+          <View style={styles.tabInner}>
+            {SCA_LIMIARES.map((linha, i) => {
+              const cor = SCA_COR[linha.classe] || SCA_COR["Comercial"];
+              return (
+                <View key={linha.classe} style={[styles.tabRow, i === SCA_LIMIARES.length - 1 && styles.tabRowLast]}>
+                  <Text style={styles.tabNome} numberOfLines={1}>{linha.classe}</Text>
+                  <View style={[styles.scaBadge, { backgroundColor: cor.bg }]}>
+                    <Text style={[styles.scaBadgeTxt, { color: cor.fg }]}>×{linha.mult.toFixed(1)}</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </Painel>
       </View>
 
-      {/* Abas */}
+      {/* ---------- Abas ---------- */}
       <View style={styles.abas}>
         <Pressable
           onPress={() => setAba("commodity")}
@@ -87,35 +114,23 @@ export default function TelaMercado() {
         </Pressable>
       </View>
 
-      {/* Lista */}
+      {/* ---------- Vender tudo + lista ---------- */}
       {lista.length === 0 ? (
         <Text style={styles.vazio}>
           {aba === "microlote"
-            ? `Sem microlotes (precisa de score SCA ≥ ${LIMIAR_MICROLOTE_SCA}). Cuide bem da lavoura e use métodos pós superiores.`
+            ? `Sem microlotes (precisa de SCA ≥ ${LIMIAR_MICROLOTE_SCA}). Cuide bem da lavoura e use métodos pós superiores.`
             : "Sem sacas commodity. Colha e processe pra estocar aqui."}
         </Text>
       ) : (
         <>
-          <View style={styles.caixa}>
-            <Text style={styles.subTitulo}>
-              Vender tudo desta aba ({sacasLista} sacas)
-            </Text>
-            <View style={styles.totalLinha}>
-              <Text style={styles.totalValor}>
-                R$ {totalLista.toLocaleString("pt-BR")}
-              </Text>
-              <Botao
-                variante="primario"
-                onPress={() => {
-                  // Vender todos os lotes desta aba (1 por 1 — manda VENDER_LOTE)
-                  for (const l of lista) {
-                    dispatch({ type: "VENDER_LOTE", payload: { loteId: l.id } });
-                  }
-                }}
-              >
-                Vender tudo
-              </Botao>
+          <View style={styles.venderTudo}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.venderLabel}>VENDER TUDO DESTA ABA ({sacasLista} sacas)</Text>
+              <Text style={styles.venderTotal}>R$ {totalLista.toLocaleString("pt-BR")}</Text>
             </View>
+            <Botao variante="primario" onPress={venderAba}>
+              💰 Vender tudo
+            </Botao>
           </View>
 
           <View style={styles.lista}>
@@ -130,91 +145,117 @@ export default function TelaMercado() {
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 12 },
-  h2: {
-    color: tema.dourado,
-    fontSize: 14,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
+  container: { gap: 16 },
+
+  /* Tulha */
+  tulhaNome: { color: tema.texto, fontSize: 14, fontWeight: "700", marginBottom: 10 },
+  tulhaBox: {
+    backgroundColor: tema.creme,
+    borderWidth: 2,
+    borderColor: tema.linha,
+    borderRadius: 10,
+    padding: 10,
+    gap: 8,
   },
-  subTitulo: {
-    color: tema.textoDim,
-    fontSize: 11,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-    marginBottom: 4,
+  tulhaLinha: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  tulhaLabel: { color: tema.texto, fontSize: 12, fontWeight: "700" },
+  tulhaVal: { fontSize: 13, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  barra: {
+    backgroundColor: tema.madeiraBase,
+    borderRadius: 999,
+    height: 14,
+    overflow: "hidden",
   },
-  caixa: {
-    backgroundColor: tema.bg2,
-    borderWidth: 1,
-    borderColor: tema.bg3,
-    borderRadius: tema.raio,
-    padding: 12,
-    gap: 4,
+  barraFill: { height: "100%", borderRadius: 999, justifyContent: "flex-start" },
+  barraShine: {
+    position: "absolute",
+    top: 2,
+    left: 6,
+    right: 6,
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.45)",
   },
-  tabLinha: {
+
+  /* Bento */
+  bento: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
+  bentoItem: { flex: 1 },
+  tabInner: {
+    backgroundColor: tema.creme,
+    borderWidth: 2,
+    borderColor: tema.linha,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+  },
+  tabRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 5,
+    alignItems: "center",
+    paddingVertical: 7,
     borderBottomWidth: 1,
-    borderBottomColor: tema.bg3,
-    borderStyle: "dashed",
+    borderBottomColor: tema.surfaceVariant || "#ece2c9",
   },
-  tabNome: { color: tema.texto, fontSize: 12 },
-  tabPreco: {
-    color: tema.dourado,
-    fontWeight: "600",
-    fontVariant: ["tabular-nums"],
-    fontSize: 12,
-  },
-  abas: {
-    flexDirection: "row",
-    backgroundColor: tema.bg2,
-    borderWidth: 1,
-    borderColor: tema.bg3,
-    borderRadius: tema.raio,
-    padding: 4,
-    gap: 4,
-  },
+  tabRowLast: { borderBottomWidth: 0 },
+  tabNome: { color: tema.texto, fontSize: 12, flexShrink: 1 },
+  tabPreco: { color: tema.verde, fontSize: 12, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  scaBadge: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
+  scaBadgeTxt: { fontSize: 11, fontWeight: "800" },
+
+  /* Abas */
+  abas: { flexDirection: "row", gap: 8 },
   aba: {
     flex: 1,
-    paddingVertical: 9,
-    paddingHorizontal: 8,
-    borderRadius: tema.raioPequeno,
+    paddingVertical: 11,
+    borderRadius: 12,
     alignItems: "center",
+    backgroundColor: tema.bg3,
+    borderWidth: 2,
+    borderColor: tema.linha,
+    borderBottomWidth: 4,
+    borderBottomColor: tema.linha,
   },
   abaAtiva: {
-    backgroundColor: tema.bg3,
+    backgroundColor: tema.bg2,
+    borderColor: tema.verde,
+    borderBottomColor: tema.verdeBase,
   },
-  abaTxt: {
-    color: tema.textoDim,
-    fontSize: 12,
-    fontWeight: "500",
+  abaTxt: { color: tema.textoDim, fontSize: 13, fontWeight: "700" },
+  abaTxtAtivo: { color: tema.verde },
+
+  /* Vender tudo */
+  venderTudo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#fff3d2",
+    borderWidth: 3,
+    borderColor: tema.gold,
+    borderBottomWidth: 6,
+    borderBottomColor: tema.goldBorda,
+    borderRadius: 16,
+    padding: 14,
   },
-  abaTxtAtivo: {
-    color: tema.dourado,
+  venderLabel: {
+    color: tema.douradoEscuro,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.5,
   },
+  venderTotal: {
+    color: tema.verde,
+    fontSize: 24,
+    fontWeight: "800",
+    fontVariant: ["tabular-nums"],
+    marginTop: 2,
+  },
+
   vazio: {
     textAlign: "center",
     color: tema.textoFraco,
     paddingVertical: 24,
-    fontSize: 12,
-    lineHeight: 18,
-    paddingHorizontal: 16,
+    fontSize: 13,
+    lineHeight: 19,
+    paddingHorizontal: 12,
   },
-  totalLinha: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 10,
-    marginTop: 4,
-  },
-  totalValor: {
-    color: tema.verde,
-    fontSize: 18,
-    fontWeight: "600",
-    fontVariant: ["tabular-nums"],
-  },
-  lista: { gap: 8 },
+  lista: { gap: 12 },
 });

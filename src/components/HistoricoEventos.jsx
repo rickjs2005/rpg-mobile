@@ -136,8 +136,8 @@ const styles = StyleSheet.create({
     borderColor: tema.bg3,
   },
   filtroChipAtivo: {
-    backgroundColor: tema.dourado,
-    borderColor: tema.dourado,
+    backgroundColor: tema.gold,
+    borderColor: tema.goldBorda,
   },
   filtroTxt: { color: tema.textoDim, fontSize: 12 },
   filtroTxtAtivo: { color: "#1a0f08", fontWeight: "600" },

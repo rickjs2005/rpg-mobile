@@ -1,3 +1,9 @@
+/* ============================================================
+   TELA TERRAS — "Terras À Venda" (design Stitch / Hay Day).
+   Painel intro (moldura dupla + título em pílula + 2 caixas
+   rebaixadas) + cards com banner 3D. Dados/lógica reais.
+   ============================================================ */
+
 import { View, Text, StyleSheet } from "react-native";
 import { useJogo } from "../hooks/useJogo.jsx";
 import CardPropriedade from "./CardPropriedade.jsx";
@@ -12,13 +18,30 @@ export default function TelaPropriedades() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.h2}>Terras à venda</Text>
-      <Text style={styles.dica}>
-        Duas modalidades: <Text style={styles.b}>nua</Text> é barata mas precisa formar
-        lavoura (~3 anos). <Text style={styles.b}>Pronta</Text> é cara mas produz já na
-        próxima safra.
-      </Text>
+      {/* Intro */}
+      <View style={styles.intro}>
+        <View style={styles.tituloPill}>
+          <Text style={styles.tituloTxt}>TERRAS À VENDA</Text>
+        </View>
+        <Text style={styles.introTxt}>
+          Expanda seu império. Escolha entre terras nuas mais baratas ou lavouras
+          prontas para colheita imediata.
+        </Text>
+        <View style={styles.introBoxes}>
+          <View style={styles.recess}>
+            <Text style={styles.recessIco}>🌱</Text>
+            <Text style={styles.recessTit}>Terra Nua</Text>
+            <Text style={styles.recessSub}>Barata, 3 anos p/ formar</Text>
+          </View>
+          <View style={styles.recess}>
+            <Text style={styles.recessIco}>☕</Text>
+            <Text style={[styles.recessTit, { color: tema.dourado }]}>Lavoura Pronta</Text>
+            <Text style={styles.recessSub}>Cara, produção imediata</Text>
+          </View>
+        </View>
+      </View>
 
+      {/* Lista */}
       {disponiveis.length === 0 ? (
         <Text style={styles.vazio}>Nada à venda no momento.</Text>
       ) : (
@@ -29,19 +52,18 @@ export default function TelaPropriedades() {
         </View>
       )}
 
+      {/* Adquiridas */}
       {state.propriedadesCompradas.length > 0 && (
-        <View style={styles.caixa}>
-          <Text style={styles.caixaTitulo}>Propriedades adquiridas</Text>
-          <View>
-            {state.propriedadesCompradas.map((id) => {
-              const p = PROPRIEDADES_VENDA.find((x) => x.id === id);
-              return (
-                <Text key={id} style={styles.comprada}>
-                  ✅ {p?.nome || id}
-                </Text>
-              );
-            })}
-          </View>
+        <View style={styles.adquiridas}>
+          <Text style={styles.adquiridasTit}>PROPRIEDADES ADQUIRIDAS</Text>
+          {state.propriedadesCompradas.map((id) => {
+            const p = PROPRIEDADES_VENDA.find((x) => x.id === id);
+            return (
+              <Text key={id} style={styles.adquiridaItem}>
+                ✅ {p?.nome || id}
+              </Text>
+            );
+          })}
         </View>
       )}
     </View>
@@ -49,44 +71,77 @@ export default function TelaPropriedades() {
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 12 },
-  h2: {
-    color: tema.dourado,
+  container: { gap: 16 },
+
+  /* Intro */
+  intro: {
+    backgroundColor: tema.bg2,
+    borderRadius: 18,
+    borderWidth: 4,
+    borderColor: tema.madeira,
+    borderBottomWidth: 10,
+    borderBottomColor: tema.madeiraBase,
+    padding: 16,
+    alignItems: "center",
+    gap: 12,
+  },
+  tituloPill: {
+    backgroundColor: tema.bg3,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  tituloTxt: {
+    color: tema.madeira,
     fontSize: 14,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
+    fontWeight: "800",
+    letterSpacing: 1,
   },
-  dica: {
+  introTxt: {
     color: tema.textoDim,
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
   },
-  b: { color: tema.texto, fontWeight: "600" },
+  introBoxes: { flexDirection: "row", gap: 12, alignSelf: "stretch" },
+  recess: {
+    flex: 1,
+    backgroundColor: tema.bg3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: tema.linha,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    gap: 2,
+  },
+  recessIco: { fontSize: 22 },
+  recessTit: { color: tema.texto, fontSize: 12, fontWeight: "800" },
+  recessSub: { color: tema.textoFraco, fontSize: 10, textAlign: "center", lineHeight: 14 },
+
+  lista: { gap: 16 },
+
   vazio: {
     textAlign: "center",
     color: tema.textoFraco,
     paddingVertical: 28,
     fontSize: 13,
   },
-  lista: { gap: 10 },
-  caixa: {
+
+  /* Adquiridas */
+  adquiridas: {
     backgroundColor: tema.bg2,
-    borderWidth: 1,
-    borderColor: tema.bg3,
-    borderRadius: tema.raio,
-    padding: 12,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: tema.linha,
+    padding: 14,
     gap: 6,
   },
-  caixaTitulo: {
+  adquiridasTit: {
     color: tema.textoDim,
     fontSize: 11,
+    fontWeight: "800",
     letterSpacing: 0.5,
-    textTransform: "uppercase",
   },
-  comprada: {
-    color: tema.verde,
-    fontSize: 13,
-    paddingVertical: 2,
-  },
+  adquiridaItem: { color: tema.verde, fontSize: 14, fontWeight: "600" },
 });

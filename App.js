@@ -43,13 +43,13 @@ import Glossario from "./src/components/Glossario.jsx";
 import BalaoTutorial from "./src/components/BalaoTutorial.jsx";
 import Dashboard from "./src/components/Dashboard.jsx";
 
-function Tela({ id }) {
+function Tela({ id, setTela }) {
   switch (id) {
     case "fazenda": return <TelaFazenda />;
     case "loja": return <TelaLoja />;
     case "propriedades": return <TelaPropriedades />;
     case "mercado": return <TelaMercado />;
-    case "safra": return <TelaSafra />;
+    case "safra": return <TelaSafra setTela={setTela} />;
     default: return null;
   }
 }
@@ -97,7 +97,7 @@ function Root() {
         contentContainerStyle={shellStyles.scrollContent}
       >
         <BalaoTutorial />
-        <Tela id={tela} />
+        <Tela id={tela} setTela={setTela} />
         <View style={{ marginTop: 16 }}>
           <Botao variante="perigo" pequeno onPress={confirmarApagar}>
             🗑️ Apagar save
@@ -162,7 +162,7 @@ function Boot() {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <Boot />
     </SafeAreaProvider>
   );
@@ -202,23 +202,29 @@ const shellStyles = StyleSheet.create({
     position: "absolute",
     bottom: 80,
     right: 16,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: tema.dourado,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: tema.gold,
+    borderWidth: 2,
+    borderColor: tema.goldBorda,
+    borderBottomWidth: 5,
+    borderBottomColor: tema.goldBase,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 6,
   },
   fabTopo: {
-    bottom: 138, // acima do FAB do glossário (48 + 6 gap + 84 base)
-    backgroundColor: tema.bg3,
+    bottom: 140, // acima do FAB do glossário
+    backgroundColor: tema.bg2,
     borderWidth: 2,
-    borderColor: tema.dourado,
+    borderColor: tema.goldBorda,
+    borderBottomWidth: 5,
+    borderBottomColor: tema.goldBase,
   },
   fabPressed: {
     transform: [{ scale: 0.92 }],

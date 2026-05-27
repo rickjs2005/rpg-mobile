@@ -80,36 +80,33 @@ export default function CardTalhao({ talhao }) {
           <Text style={styles.nome}>
             {variedade ? variedade.nome : "Talhão sem cultura"}
           </Text>
-          <Text style={styles.status}>{status.texto}</Text>
-        </View>
-        <View style={styles.terreno}>
-          <Text style={styles.terrenoTxt}>
-            {talhao.terreno === "plano" ? "🟩 plano" : "⛰️ montanhoso"}
+          <Text style={styles.status}>
+            {status.texto}   {talhao.terreno === "plano" ? "🟩 Plano" : "⛰️ Montanhoso"}
           </Text>
         </View>
+        {!ehVazio && (
+          <View style={styles.sanidadeBox}>
+            <Text style={styles.sanidadeLabel}>Sanidade</Text>
+            <Text
+              style={[
+                styles.sanidadeValor,
+                sanidadePct < 40 && { color: tema.vermelho },
+              ]}
+            >
+              {sanidadePct}%
+            </Text>
+          </View>
+        )}
       </View>
 
-      <View style={styles.stats}>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Área</Text>
-          <Text style={styles.statValor}>{talhao.hectares} ha</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Pés</Text>
-          <Text style={styles.statValor}>{talhao.pes.toLocaleString("pt-BR")}</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Sanidade</Text>
-          <Text
-            style={[
-              styles.statValor,
-              sanidadePct < 40 && { color: tema.vermelho },
-            ]}
-          >
-            {sanidadePct}%
+      {!ehVazio && (
+        <View style={styles.statsBar}>
+          <Text style={styles.statTxt}>📏 {talhao.hectares} ha</Text>
+          <Text style={styles.statTxt}>
+            🌳 {talhao.pes.toLocaleString("pt-BR")} pés
           </Text>
         </View>
-      </View>
+      )}
 
       {!ehVazio && (
         <View style={styles.barra}>
@@ -118,7 +115,9 @@ export default function CardTalhao({ talhao }) {
               styles.barraFill,
               { width: `${sanidadePct}%`, backgroundColor: corBarra(sanidadePct) },
             ]}
-          />
+          >
+            <View style={styles.barraShine} />
+          </View>
         </View>
       )}
 
@@ -432,11 +431,13 @@ function corBarra(pct) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: tema.bg2,
-    borderWidth: 1,
-    borderColor: tema.bg3,
-    borderLeftWidth: 4,
-    borderRadius: tema.raio,
-    padding: 12,
+    borderWidth: 2,
+    borderColor: tema.linha,
+    borderLeftWidth: 5,
+    borderBottomWidth: 6,
+    borderBottomColor: "#cdb78c",
+    borderRadius: tema.raioGrande,
+    padding: 14,
     gap: 10,
   },
   header: {
@@ -447,51 +448,70 @@ const styles = StyleSheet.create({
   },
   nome: {
     color: tema.texto,
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "800",
   },
   status: {
     color: tema.textoDim,
-    fontSize: 11,
+    fontSize: 12,
+    fontWeight: "600",
     marginTop: 2,
   },
-  terreno: {
+  sanidadeBox: {
     backgroundColor: tema.bg3,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: tema.raioPequeno,
+    borderWidth: 1,
+    borderColor: tema.linha,
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    alignItems: "center",
   },
-  terrenoTxt: {
-    color: tema.texto,
-    fontSize: 11,
-  },
-  stats: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  statItem: {
-    flex: 1,
-    gap: 1,
-  },
-  statLabel: {
+  sanidadeLabel: {
     color: tema.textoDim,
     fontSize: 10,
+    fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.4,
   },
-  statValor: {
+  sanidadeValor: {
+    color: tema.verde,
+    fontSize: 18,
+    fontWeight: "800",
+    fontVariant: ["tabular-nums"],
+  },
+  statsBar: {
+    flexDirection: "row",
+    gap: 18,
+    backgroundColor: tema.bg3,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  statTxt: {
     color: tema.texto,
     fontSize: 13,
+    fontWeight: "600",
     fontVariant: ["tabular-nums"],
   },
   barra: {
-    backgroundColor: tema.bg3,
-    borderRadius: 3,
-    height: 6,
+    backgroundColor: tema.madeiraBase,
+    borderRadius: 999,
+    height: 14,
     overflow: "hidden",
   },
   barraFill: {
     height: "100%",
+    borderRadius: 999,
+    justifyContent: "flex-start",
+  },
+  barraShine: {
+    position: "absolute",
+    top: 2,
+    left: 6,
+    right: 6,
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.45)",
   },
   chips: {
     flexDirection: "row",
@@ -499,10 +519,10 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   chip: {
-    backgroundColor: tema.bg3,
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: 4,
+    backgroundColor: tema.creme,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 999,
     borderWidth: 1,
     borderColor: tema.linha,
   },

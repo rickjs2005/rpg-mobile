@@ -1,215 +1,132 @@
+/* ============================================================
+   CARD LOTE — lote no Mercado (design Stitch / Hay Day).
+   Painel madeira com faixa da variedade, chips "glossy",
+   valor total grande e botão Vender. Preço REAL (= creditado).
+   ============================================================ */
+
 import { View, Text, StyleSheet } from "react-native";
 import { useJogo } from "../hooks/useJogo.jsx";
 import Botao from "./Botao.jsx";
 import { tema, corVariedade } from "../styles/tema.js";
 import { VARIEDADES } from "../data/cafe.js";
 import { formatarData } from "../logic/tempo.js";
-import {
-  precoComCertificacoes,
-  premioCertificacoes,
-} from "../logic/certificacoes.js";
-import { fatorMercado } from "../logic/mercado.js";
+import { precoFinalSaca, valorLote } from "../logic/precos.js";
 
-const TIPO_LOTE_LABEL = {
-  cereja: "🍒 cereja",
-  boia: "🟡 boia",
-  natural: "",
-};
+const TIPO_LOTE = { cereja: "🍒 cereja", boia: "🟡 boia", natural: "" };
 
 export default function CardLote({ lote }) {
   const { state, dispatch } = useJogo();
   const variedade = VARIEDADES[lote.variedadeId];
-  const precoCert = precoComCertificacoes(lote.precoPorSaca, state.certificacoes);
-  const merc = fatorMercado(state.mercado);
-  const precoFinal = Math.round(precoCert * merc);
-  const premio = premioCertificacoes(state.certificacoes);
-  const valor = lote.sacas * precoFinal;
-  const isMicrolote = lote.microlote;
+  const cor = variedade ? corVariedade(variedade.cor) : tema.gold;
+  const precoSaca = precoFinalSaca(state, lote);
+  const total = valorLote(state, lote);
 
   return (
-    <View
-      style={[
-        styles.card,
-        { borderLeftColor: variedade ? corVariedade(variedade.cor) : tema.dourado },
-        isMicrolote && styles.cardMicrolote,
-      ]}
-    >
-      <View style={styles.header}>
-        <View style={{ flex: 1 }}>
-          <View style={styles.headerLinha}>
-            <Text style={styles.sacas}>{lote.sacas} sacas</Text>
-            {lote.tipoLote && lote.tipoLote !== "natural" && (
-              <Text style={styles.tipoLote}>{TIPO_LOTE_LABEL[lote.tipoLote]}</Text>
-            )}
-          </View>
-          <Text style={styles.variedade}>{variedade?.nome}</Text>
-        </View>
-        {isMicrolote ? (
-          <View style={styles.microlote}>
-            <Text style={styles.microloteTxt}>⭐ MICROLOTE</Text>
-          </View>
-        ) : (
-          <View style={styles.classe}>
-            <Text style={styles.classeTxt}>{lote.classeSca || lote.classeNome}</Text>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.stats}>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>SCA</Text>
-          <Text style={styles.statValor}>{lote.sca || "—"} pts</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Tipo</Text>
-          <Text style={styles.statValor}>BR {lote.tipo || "—"}</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Peneira</Text>
-          <Text style={styles.statValor}>P{lote.peneira || "—"}</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>R$/saca</Text>
-          <Text style={styles.statValor}>
-            R$ {precoFinal.toLocaleString("pt-BR")}
-            {premio > 0 && (
-              <Text style={{ color: tema.verde }}> +{Math.round(premio * 100)}%</Text>
-            )}
-            {merc !== 1 && (
-              <Text
-                style={{
-                  color: merc > 1 ? tema.verde : tema.vermelho,
-                  fontSize: 9,
-                }}
-              >
-                {" "}× {merc.toFixed(2)}
-              </Text>
-            )}
+    <View style={[styles.card, lote.microlote && styles.cardMicro]}>
+      <View style={[styles.stripe, { backgroundColor: cor }]} />
+      <View style={styles.body}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.emoji}>{lote.tipoLote === "boia" ? "🟡" : "🍒"}</Text>
+          <Text style={styles.variedade} numberOfLines={1}>
+            {variedade?.nome || "Lote"}
           </Text>
+          {lote.microlote ? (
+            <View style={styles.microBadge}>
+              <Text style={styles.microTxt}>⭐ MICROLOTE</Text>
+            </View>
+          ) : (
+            lote.tipoLote && lote.tipoLote !== "natural" && (
+              <Text style={styles.tipoLote}>{TIPO_LOTE[lote.tipoLote]}</Text>
+            )
+          )}
+        </View>
+
+        {/* Chips glossy */}
+        <View style={styles.chips}>
+          <Chip txt={`⚖️ ${lote.sacas} sacas`} />
+          <Chip txt={`SCA ${lote.sca ?? "—"}`} cor={tema.verde} />
+          <Chip txt={`BR ${lote.tipo ?? "—"}`} />
+          <Chip txt={`P${lote.peneira ?? "—"}`} />
+          <Chip txt={`R$ ${precoSaca.toLocaleString("pt-BR")}/saca`} />
+        </View>
+
+        <Text style={styles.data}>📅 Colhido em {formatarData(lote.dataColheita)}</Text>
+
+        {/* Footer: valor + vender */}
+        <View style={styles.footer}>
+          <View>
+            <Text style={styles.valorLabel}>Valor Total</Text>
+            <Text style={styles.valor}>R$ {total.toLocaleString("pt-BR")}</Text>
+          </View>
+          <Botao
+            variante="sucesso"
+            onPress={() => dispatch({ type: "VENDER_LOTE", payload: { loteId: lote.id } })}
+          >
+            Vender
+          </Botao>
         </View>
       </View>
+    </View>
+  );
+}
 
-      <View style={styles.metaLinha}>
-        <Text style={styles.meta}>Colhido em {formatarData(lote.dataColheita)}</Text>
-      </View>
-
-      <View style={styles.footer}>
-        <Text style={styles.valor}>R$ {valor.toLocaleString("pt-BR")}</Text>
-        <Botao
-          pequeno
-          variante="primario"
-          onPress={() =>
-            dispatch({ type: "VENDER_LOTE", payload: { loteId: lote.id } })
-          }
-        >
-          Vender
-        </Botao>
-      </View>
+function Chip({ txt, cor }) {
+  return (
+    <View style={styles.chip}>
+      <Text style={[styles.chipTxt, cor && { color: cor }]}>{txt}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
+    flexDirection: "row",
     backgroundColor: tema.bg2,
+    borderRadius: 16,
+    borderWidth: 3,
+    borderColor: tema.madeira,
+    borderBottomWidth: 8,
+    borderBottomColor: tema.madeiraBase,
+    overflow: "hidden",
+  },
+  cardMicro: { borderColor: tema.gold, borderBottomColor: tema.goldBorda },
+  stripe: { width: 8 },
+  body: { flex: 1, padding: 12, gap: 8 },
+
+  header: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
+  emoji: { fontSize: 20 },
+  variedade: { color: tema.texto, fontSize: 16, fontWeight: "800", flexShrink: 1 },
+  microBadge: {
+    backgroundColor: tema.gold,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  microTxt: { color: "#3d2e00", fontSize: 10, fontWeight: "800" },
+  tipoLote: { color: tema.textoDim, fontSize: 12, fontWeight: "600" },
+
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  chip: {
+    backgroundColor: tema.creme,
     borderWidth: 1,
-    borderColor: tema.bg3,
-    borderLeftWidth: 4,
-    borderRadius: tema.raio,
-    padding: 12,
-    gap: 8,
-  },
-  cardMicrolote: {
-    borderColor: tema.dourado,
-    backgroundColor: "#2d2218",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 8,
-  },
-  headerLinha: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  sacas: {
-    color: tema.texto,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  tipoLote: {
-    color: tema.textoDim,
-    fontSize: 11,
-  },
-  variedade: {
-    color: tema.textoDim,
-    fontSize: 12,
-    marginTop: 1,
-  },
-  classe: {
-    backgroundColor: tema.bg3,
-    paddingVertical: 4,
+    borderColor: tema.linha,
+    borderRadius: 8,
     paddingHorizontal: 8,
-    borderRadius: tema.raioPequeno,
-  },
-  classeTxt: {
-    color: tema.dourado,
-    fontSize: 10,
-    fontWeight: "600",
-  },
-  microlote: {
-    backgroundColor: tema.dourado,
     paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: tema.raioPequeno,
   },
-  microloteTxt: {
-    color: "#1a0f08",
-    fontSize: 10,
-    fontWeight: "700",
-  },
-  stats: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  statItem: {
-    flex: 1,
-    gap: 1,
-  },
-  statLabel: {
-    color: tema.textoDim,
-    fontSize: 9,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
-  statValor: {
-    color: tema.texto,
-    fontSize: 12,
-    fontVariant: ["tabular-nums"],
-  },
-  metaLinha: {
-    flexDirection: "row",
-  },
-  meta: {
-    color: tema.textoDim,
-    fontSize: 11,
-  },
+  chipTxt: { color: tema.texto, fontSize: 12, fontWeight: "700", fontVariant: ["tabular-nums"] },
+
+  data: { color: tema.textoDim, fontSize: 11 },
+
   footer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    gap: 8,
-    paddingTop: 6,
+    paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: tema.bg3,
-    borderStyle: "dashed",
+    borderTopColor: tema.linha,
   },
-  valor: {
-    color: tema.verde,
-    fontSize: 16,
-    fontWeight: "600",
-    fontVariant: ["tabular-nums"],
-  },
+  valorLabel: { color: tema.textoDim, fontSize: 11, fontWeight: "600" },
+  valor: { color: tema.verde, fontSize: 22, fontWeight: "800", fontVariant: ["tabular-nums"] },
 });
