@@ -18,6 +18,7 @@ import {
   TULHA_PROGRESSAO,
 } from "../data/economia.js";
 import { FUNCAFE, COOPERATIVA } from "../data/constantes.js";
+import { nivelPorXp, desbloqueado, NIVEL_EQUIPAMENTO } from "../data/niveis.js";
 import { statusCertText } from "../logic/certificacoes.js";
 import { hectaresCobertura, folhaPagamentoMensal } from "../logic/equipe.js";
 import { limiteEmprestimo, calcularParcela } from "../logic/financiamento.js";
@@ -63,6 +64,7 @@ function Titulo({ icone, children }) {
 export default function TelaLoja() {
   const { state, dispatch } = useJogo();
   const filiado = !!state.cooperativa?.filiado;
+  const nivel = nivelPorXp(state.xp).nivel;
 
   return (
     <View style={styles.container}>
@@ -170,6 +172,10 @@ export default function TelaLoja() {
               {possui ? (
                 <View style={styles.owned}>
                   <Text style={styles.ownedTxt}>✓ Adquirido</Text>
+                </View>
+              ) : !desbloqueado(NIVEL_EQUIPAMENTO, id, nivel) ? (
+                <View style={[styles.owned, styles.locked]}>
+                  <Text style={styles.lockedTxt}>🔒 Nível {NIVEL_EQUIPAMENTO[id]}</Text>
                 </View>
               ) : (
                 <Botao
@@ -486,6 +492,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   ownedTxt: { color: tema.verdeBase, fontSize: 12, fontWeight: "800" },
+  locked: { backgroundColor: tema.bg3 },
+  lockedTxt: { color: tema.textoDim, fontSize: 12, fontWeight: "800" },
 
   atualPill: {
     backgroundColor: tema.verdeFixo,

@@ -6,7 +6,8 @@
    Presentacional: recebe `talhao` + `mes` + `onPress`.
    ============================================================ */
 
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { useRef, useEffect } from "react";
+import { View, Text, Pressable, Animated, Easing, StyleSheet } from "react-native";
 import { tema } from "../styles/tema.js";
 import { VARIEDADES } from "../data/cafe.js";
 import { ANOS_FORMACAO } from "../data/constantes.js";
@@ -56,6 +57,23 @@ export default function PlotTalhao({ talhao, mes, onPress }) {
   const temPragas = Object.keys(talhao.pragas || {}).length > 0;
   const pronto = formado && !recup && estaEpocaColheita({ mes }) && !talhao.ciclo?.safraColhida;
   const atencao = talhao.variedadeId && !recup && (sanPct < 40 || pronto);
+  const balanca = talhao.variedadeId && !recup; // folhagem balança ao vento
+  const formando = talhao.variedadeId && talhao.idadeAnos < ANOS_FORMACAO;
+
+  // Vento: oscilação suave das mudas.
+  const sway = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!balanca) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(sway, { toValue: 1, duration: 1700, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(sway, { toValue: -1, duration: 1700, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [sway, balanca]);
+  const swayX = sway.interpolate({ inputRange: [-1, 1], outputRange: [-3, 3] });
 
   const status = !talhao.variedadeId
     ? "Vazio — tocar p/ plantar"
@@ -70,7 +88,10 @@ export default function PlotTalhao({ talhao, mes, onPress }) {
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.plot, pressed && { opacity: 0.85 }]}
+      style={({ pressed }) => [
+        styles.plot,
+        pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] },
+      ]}
     >
       {/* Campo com as mudas */}
       <View style={[styles.campo, { backgroundColor: corCampo(talhao) }]}>
@@ -79,11 +100,23 @@ export default function PlotTalhao({ talhao, mes, onPress }) {
           {talhao.irrigado && <Text style={styles.selo}>💧</Text>}
           {atencao && <Text style={styles.selo}>⚠️</Text>}
         </View>
-        <View style={styles.mudas}>
+        {formando && (
+          <View style={styles.formacaoBar}>
+            <View
+              style={[
+                styles.formacaoFill,
+                { width: `${Math.round((talhao.idadeAnos / ANOS_FORMACAO) * 100)}%` },
+              ]}
+            />
+          </View>
+        )}
+        <Animated.View
+          style={[styles.mudas, balanca && { transform: [{ translateX: swayX }] }]}
+        >
           {dots.map((c, i) => (
             <View key={i} style={[styles.muda, { backgroundColor: c }]} />
           ))}
-        </View>
+        </Animated.View>
         {talhao.variedadeId ? (
           <View style={styles.sanBarra}>
             <View
@@ -147,6 +180,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.18)",
   },
+  formacaoBar: {
+    position: "absolute",
+    top: 6,
+    left: 8,
+    right: 8,
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    overflow: "hidden",
+  },
+  formacaoFill: { height: "100%", borderRadius: 999, backgroundColor: "#8fce7a" },
   sanBarra: {
     height: 6,
     borderRadius: 999,

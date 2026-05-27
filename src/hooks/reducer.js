@@ -85,6 +85,15 @@ import { INSUMOS, EQUIPAMENTOS, CERTIFICACOES, EQUIPE, TULHAS, TULHA_PROGRESSAO 
 import { PASSOS_TUTORIAL } from "../data/tutorial.js";
 import { MARCOS } from "../data/marcos.js";
 import {
+  nivelPorXp,
+  xpVender,
+  XP_MARCO,
+  NIVEL_VARIEDADE,
+  NIVEL_EQUIPAMENTO,
+  NIVEL_PROPRIEDADE,
+  desbloqueado,
+} from "../data/niveis.js";
+import {
   INICIO_ROCINHA_PRONTA,
   INICIO_TERRA_NUA,
   CUSTO_PLANTIO_POR_HECTARE,
@@ -133,6 +142,7 @@ export function novaPartida(modo, perfil) {
     tulha: "pequena", // Lote H4: capacidade de estoque
     velocidade: 7, // dias por "Avançar" fora das fases diárias (config)
     climaHoje: null, // { tipo, mm } do último dia processado (UI)
+    xp: 0, // experiência: vender sacas + marcos → sobe de nível → desbloqueia
     cooperativa: { filiado: false }, // Lote H6: cooperativa
     eventos: [], // Lote G6: log estruturado { tempo, texto, categoria }
     // Lote G1: tutorial ativo na primeira partida
@@ -174,6 +184,8 @@ function verificarMarcos(state) {
   if (novosCompletos === completos) return state;
   let novo = { ...state, marcos: novosCompletos };
   for (const e of eventos) novo = comMensagem(novo, e);
+  // Bônus de XP por cada marco recém-desbloqueado (1 evento = 1 marco).
+  if (eventos.length > 0) novo = ganharXp(novo, eventos.length * XP_MARCO);
   return novo;
 }
 
@@ -265,6 +277,23 @@ function trocarTalhao(state, id, fn) {
     ...state,
     talhoes: state.talhoes.map((t) => (t.id === id ? fn(t) : t)),
   };
+}
+
+// Adiciona XP e, se subiu de nível, emite mensagem de desbloqueio.
+function ganharXp(state, quantia) {
+  if (!quantia || quantia <= 0) return state;
+  const xpAntes = state.xp || 0;
+  const nivelAntes = nivelPorXp(xpAntes).nivel;
+  const xp = xpAntes + quantia;
+  let novo = { ...state, xp };
+  const def = nivelPorXp(xp);
+  if (def.nivel > nivelAntes) {
+    novo = comMensagem(
+      novo,
+      `⭐ Subiu pro nível ${def.nivel} — ${def.titulo}! Novos itens liberados na roça.`
+    );
+  }
+  return novo;
 }
 
 let proxLoteId = 1;
@@ -572,6 +601,9 @@ function acaoComprarEquipamento(state, { equipId }) {
   if (state.equipamentos.includes(equipId)) {
     return comMensagem(state, `Você já tem ${EQUIPAMENTOS[equipId].nome}.`);
   }
+  if (!desbloqueado(NIVEL_EQUIPAMENTO, equipId, nivelPorXp(state.xp).nivel)) {
+    return comMensagem(state, `🔒 ${EQUIPAMENTOS[equipId].nome} desbloqueia no nível ${NIVEL_EQUIPAMENTO[equipId]}.`);
+  }
   const custo = custoEquipamento(equipId);
   if (!podePagar(state.caixa, custo)) {
     return comMensagem(state, `❌ Caixa insuficiente pra ${EQUIPAMENTOS[equipId].nome}.`);
@@ -590,6 +622,9 @@ function acaoComprarPropriedade(state, { propId }) {
   if (state.propriedadesCompradas.includes(propId)) return state;
   const r = comprarProp(propId);
   if (!r) return state;
+  if (!desbloqueado(NIVEL_PROPRIEDADE, propId, nivelPorXp(state.xp).nivel)) {
+    return comMensagem(state, `🔒 Essa propriedade desbloqueia no nível ${NIVEL_PROPRIEDADE[propId]}.`);
+  }
   if (!podePagar(state.caixa, r.preco)) {
     return comMensagem(state, `❌ Caixa insuficiente pra essa propriedade.`);
   }
@@ -608,6 +643,9 @@ function acaoPlantar(state, { talhaoId, variedadeId, densidade = "tradicional", 
   const talhao = state.talhoes.find((t) => t.id === talhaoId);
   if (!talhao || talhao.variedadeId) return state;
   if (!VARIEDADES[variedadeId]) return state;
+  if (!desbloqueado(NIVEL_VARIEDADE, variedadeId, nivelPorXp(state.xp).nivel)) {
+    return comMensagem(state, `🔒 ${VARIEDADES[variedadeId].nome} desbloqueia no nível ${NIVEL_VARIEDADE[variedadeId]}.`);
+  }
   // Lote H8+H9: custo escalonado pela densidade × sombreamento
   const multDens = DENSIDADES[densidade]?.multiplicadorCusto || 1.0;
   const multSombra = sombreado ? SOMBREAMENTO.multiplicadorCusto : 1.0;
@@ -784,7 +822,7 @@ function acaoVenderLote(state, { loteId }) {
   if (!porAno[ano]) porAno[ano] = { receita: 0, despesa: 0, sacas: 0 };
   porAno[ano] = { ...porAno[ano], sacas: (porAno[ano].sacas || 0) + lote.sacas };
 
-  return comMensagem(
+  const vendido = comMensagem(
     {
       ...state,
       caixa: state.caixa + valor,
@@ -799,6 +837,7 @@ function acaoVenderLote(state, { loteId }) {
     },
     `💰 Vendeu ${lote.sacas} sacas (${lote.classeNome}): +R$${valor.toLocaleString("pt-BR")}`
   );
+  return ganharXp(vendido, xpVender(lote.sacas));
 }
 
 function acaoAderirCertificacao(state, { certId }) {
@@ -1072,7 +1111,7 @@ function acaoVenderTudo(state) {
     melhorLote: melhor,
     porAno,
   };
-  return comMensagem(
+  const vendido = comMensagem(
     {
       ...state,
       caixa: state.caixa + total,
@@ -1081,6 +1120,7 @@ function acaoVenderTudo(state) {
     },
     `💰 Vendeu todo o estoque (${sacas} sacas): +R$${total.toLocaleString("pt-BR")}`
   );
+  return ganharXp(vendido, xpVender(sacas));
 }
 
 /* ---------- Dispatcher ---------- */

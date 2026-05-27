@@ -21,6 +21,8 @@ import { PRAGAS, nivelPraga } from "../data/pragas.js";
 import { temPragaNaoRevelada } from "../logic/pragas.js";
 import { estaEpocaColheita } from "../logic/tempo.js";
 import { calcularMaturacao } from "../logic/maturacao.js";
+import { colher } from "../logic/panha.js";
+import { nivelPorXp, desbloqueado, NIVEL_VARIEDADE } from "../data/niveis.js";
 import {
   categoriaIdade,
   estaEmRecuperacao,
@@ -67,6 +69,13 @@ export default function CardTalhao({ talhao }) {
   const ehVazio = !talhao.variedadeId;
   const podeEsq = podeSerEsqueletado(talhao);
   const podeRec = podeSerRecepado(talhao);
+
+  // Preview de colheita: estimativa de sacas por método (só quando colhível).
+  const estSacas = (metodo) => {
+    if (!podeColher) return 0;
+    const c = colher(talhao, calcularMaturacao(talhao, state.tempo.mes), metodo, state.equipamentos, state.equipe);
+    return c?.sacas ?? 0;
+  };
   const insumosNoInv = Object.keys(INSUMOS).filter(
     (k) => (state.inventario[k] || 0) > 0
   );
@@ -284,25 +293,30 @@ export default function CardTalhao({ talhao }) {
               ).toLocaleString("pt-BR")}
             </Text>
 
-            {Object.entries(VARIEDADES).map(([id, v]) => (
-              <Botao
-                key={id}
-                pequeno
-                onPress={() =>
-                  dispatch({
-                    type: "PLANTAR",
-                    payload: {
-                      talhaoId: talhao.id,
-                      variedadeId: id,
-                      densidade: densidadeEscolhida,
-                      sombreado: sombreadoEscolhido,
-                    },
-                  })
-                }
-              >
-                🌱 Plantar {v.nome}
-              </Botao>
-            ))}
+            {Object.entries(VARIEDADES).map(([id, v]) => {
+              const lib = desbloqueado(NIVEL_VARIEDADE, id, nivelPorXp(state.xp).nivel);
+              return (
+                <Botao
+                  key={id}
+                  pequeno
+                  variante={lib ? "secundario" : "fantasma"}
+                  disabled={!lib}
+                  onPress={() =>
+                    dispatch({
+                      type: "PLANTAR",
+                      payload: {
+                        talhaoId: talhao.id,
+                        variedadeId: id,
+                        densidade: densidadeEscolhida,
+                        sombreado: sombreadoEscolhido,
+                      },
+                    })
+                  }
+                >
+                  {lib ? `🌱 Plantar ${v.nome}` : `🔒 ${v.nome} (Nv ${NIVEL_VARIEDADE[id]})`}
+                </Botao>
+              );
+            })}
           </View>
         )}
 
@@ -335,7 +349,7 @@ export default function CardTalhao({ talhao }) {
                 })
               }
             >
-              ⚒️ Manual
+              ⚒️ Manual (~{estSacas("manual")} sc)
             </Botao>
             <Botao
               pequeno
@@ -346,7 +360,7 @@ export default function CardTalhao({ talhao }) {
                 })
               }
             >
-              🌾 Derriça
+              🌾 Derriça (~{estSacas("derrica")} sc)
             </Botao>
             {state.equipamentos.includes("colhedora") &&
               talhao.terreno === "plano" && (
@@ -359,7 +373,7 @@ export default function CardTalhao({ talhao }) {
                     })
                   }
                 >
-                  🚜 Mecânico
+                  🚜 Mecânico (~{estSacas("colhedora")} sc)
                 </Botao>
               )}
           </>

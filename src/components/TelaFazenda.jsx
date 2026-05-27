@@ -7,11 +7,15 @@ import PlotTalhao from "./PlotTalhao.jsx";
 import Timeline from "./Timeline.jsx";
 import HistoricoEventos from "./HistoricoEventos.jsx";
 import Painel from "./Painel.jsx";
+import Botao from "./Botao.jsx";
 import { tema } from "../styles/tema.js";
 import { INSUMOS } from "../data/economia.js";
 import { formatarData } from "../logic/tempo.js";
 import { climaDescreve } from "../logic/clima.js";
 import { resumoFazenda } from "../logic/resumoFazenda.js";
+import { estaEmRecuperacao } from "../logic/talhao.js";
+import { UMIDADE_INICIAL, UMIDADE_PRONTA } from "../logic/pos_colheita.js";
+import { CUSTO_AMOSTRAGEM, ANOS_FORMACAO } from "../data/constantes.js";
 
 // Migra save antigo: state.mensagens (strings) → eventos sintéticos.
 function eventosCompat(state) {
@@ -26,15 +30,55 @@ function eventosCompat(state) {
   return [];
 }
 
-export default function TelaFazenda() {
-  const { state } = useJogo();
+export default function TelaFazenda({ setTela }) {
+  const { state, dispatch } = useJogo();
   const insets = useSafeAreaInsets();
   const [histAberto, setHistAberto] = useState(false);
   const [vista, setVista] = useState("mapa"); // "mapa" | "lista"
+  const [ordem, setOrdem] = useState("atencao"); // "atencao" | "sanidade" | "idade"
   const [talhaoModalId, setTalhaoModalId] = useState(null);
   const eventos = eventosCompat(state);
   const resumo = resumoFazenda(state);
   const talhaoModal = state.talhoes.find((t) => t.id === talhaoModalId) || null;
+
+  // ---- Ordenação dos talhões ----
+  const naEpoca = state.tempo.mes >= 5 && state.tempo.mes <= 8;
+  const score = (t) => {
+    if (!t.variedadeId) return -1; // vazios por último
+    let s = 0;
+    if (naEpoca && t.idadeAnos >= ANOS_FORMACAO && t.estado === "normal" && !t.ciclo?.safraColhida) s += 5;
+    if (Object.keys(t.pragas || {}).length) s += 3;
+    if (t.sanidade < 0.4) s += 4;
+    return s;
+  };
+  const talhoesOrd = [...state.talhoes].sort((a, b) => {
+    if (ordem === "sanidade") return (a.sanidade || 0) - (b.sanidade || 0);
+    if (ordem === "idade") return (b.idadeAnos || 0) - (a.idadeAnos || 0);
+    return score(b) - score(a) || (a.sanidade || 0) - (b.sanidade || 0);
+  });
+
+  // ---- Ações em massa ----
+  const aduboQtd = state.inventario?.adubo || 0;
+  const fracos = state.talhoes
+    .filter((t) => t.variedadeId && !estaEmRecuperacao(t) && t.sanidade < 0.7)
+    .sort((a, b) => a.sanidade - b.sanidade);
+  const adubarN = Math.min(aduboQtd, fracos.length);
+  const amostraveis = state.talhoes.filter((t) => t.variedadeId && !estaEmRecuperacao(t));
+  const amostrarN = Math.min(amostraveis.length, Math.floor((state.caixa || 0) / CUSTO_AMOSTRAGEM));
+  const adubarFracos = () => {
+    for (let i = 0; i < adubarN; i++)
+      dispatch({ type: "APLICAR_INSUMO", payload: { talhaoId: fracos[i].id, insumoId: "adubo" } });
+  };
+  const amostrarTodos = () => {
+    for (let i = 0; i < amostrarN; i++)
+      dispatch({ type: "AMOSTRAR", payload: { talhaoId: amostraveis[i].id } });
+  };
+
+  // ---- Mini-terreiro (secagem em curso) ----
+  const secando = state.fase === "secagem" && state.loteSecagem;
+  const progSecagem = secando
+    ? Math.min(100, Math.max(0, ((UMIDADE_INICIAL - state.loteSecagem.umidade) / (UMIDADE_INICIAL - UMIDADE_PRONTA)) * 100))
+    : 0;
 
   return (
     <View style={styles.container}>
@@ -77,7 +121,40 @@ export default function TelaFazenda() {
             ))}
           </View>
         )}
+        {(adubarN > 0 || amostrarN > 0) && (
+          <View style={styles.quickRow}>
+            {adubarN > 0 && (
+              <Botao pequeno onPress={adubarFracos}>
+                🌱 Adubar fracos ({adubarN})
+              </Botao>
+            )}
+            {amostrarN > 0 && (
+              <Botao pequeno variante="fantasma" onPress={amostrarTodos}>
+                🔍 Amostrar todos ({amostrarN})
+              </Botao>
+            )}
+          </View>
+        )}
       </Painel>
+
+      {/* Mini-terreiro: secagem em curso (atalho pra Safra) */}
+      {secando && (
+        <Pressable
+          onPress={() => setTela && setTela("safra")}
+          style={({ pressed }) => [styles.terreiroCard, pressed && { opacity: 0.85 }]}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.terreiroTit}>🌡️ Secando no terreiro</Text>
+            <Text style={styles.terreiroSub}>
+              {Math.round(state.loteSecagem.umidade * 100)}% → {Math.round(UMIDADE_PRONTA * 100)}% · {state.loteSecagem.dias} dias
+            </Text>
+            <View style={styles.terreiroBar}>
+              <View style={[styles.terreiroFill, { width: `${progSecagem}%` }]} />
+            </View>
+          </View>
+          <Text style={styles.terreiroLink}>Safra →</Text>
+        </Pressable>
+      )}
 
       {/* Inventário em grade */}
       <Painel icone="📦" titulo="Inventário">
@@ -127,9 +204,30 @@ export default function TelaFazenda() {
         </View>
       </View>
 
+      {state.talhoes.length > 1 && (
+        <View style={styles.ordenarRow}>
+          <Text style={styles.ordenarLabel}>Ordenar:</Text>
+          {[
+            ["atencao", "Atenção"],
+            ["sanidade", "Sanidade"],
+            ["idade", "Idade"],
+          ].map(([id, lbl]) => (
+            <Pressable
+              key={id}
+              onPress={() => setOrdem(id)}
+              style={[styles.ordChip, ordem === id && styles.ordChipAtivo]}
+            >
+              <Text style={[styles.ordChipTxt, ordem === id && styles.ordChipTxtAtivo]}>
+                {lbl}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+
       {vista === "mapa" ? (
         <View style={styles.mapaGrid}>
-          {state.talhoes.map((t) => (
+          {talhoesOrd.map((t) => (
             <PlotTalhao
               key={t.id}
               talhao={t}
@@ -140,7 +238,7 @@ export default function TelaFazenda() {
         </View>
       ) : (
         <View style={styles.lista}>
-          {state.talhoes.map((t) => (
+          {talhoesOrd.map((t) => (
             <CardTalhao key={t.id} talhao={t} />
           ))}
         </View>
@@ -278,6 +376,49 @@ const styles = StyleSheet.create({
   toggleAtivo: { backgroundColor: tema.bg2, borderWidth: 1, borderColor: tema.dourado },
   toggleTxt: { color: tema.textoDim, fontSize: 12, fontWeight: "700" },
   toggleTxtAtivo: { color: tema.dourado },
+
+  /* Ações em massa */
+  quickRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
+
+  /* Mini-terreiro */
+  terreiroCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: tema.bg2,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: tema.azul,
+    borderBottomWidth: 5,
+    borderBottomColor: "#2c5468",
+    padding: 12,
+  },
+  terreiroTit: { color: tema.texto, fontSize: 14, fontWeight: "800" },
+  terreiroSub: { color: tema.textoDim, fontSize: 12, marginTop: 1, fontVariant: ["tabular-nums"] },
+  terreiroBar: {
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: tema.bg3,
+    overflow: "hidden",
+    marginTop: 6,
+  },
+  terreiroFill: { height: "100%", borderRadius: 999, backgroundColor: tema.azul },
+  terreiroLink: { color: tema.azul, fontSize: 13, fontWeight: "800" },
+
+  /* Ordenar */
+  ordenarRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
+  ordenarLabel: { color: tema.textoDim, fontSize: 11, fontWeight: "700" },
+  ordChip: {
+    backgroundColor: tema.bg3,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: tema.linha,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  ordChipAtivo: { backgroundColor: tema.bg2, borderColor: tema.dourado },
+  ordChipTxt: { color: tema.textoDim, fontSize: 11, fontWeight: "700" },
+  ordChipTxtAtivo: { color: tema.dourado },
 
   /* Grid do mapa */
   mapaGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "space-between" },
