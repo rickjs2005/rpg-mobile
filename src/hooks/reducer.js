@@ -32,7 +32,6 @@ import {
   envelhecerTalhao,
   aplicarInsumo,
   avancarEfeitosPendentesUmDia,
-  flipBienal,
   estaEmRecuperacao,
   estaFormado,
   podeSerEsqueletado,
@@ -105,6 +104,9 @@ import {
   COOPERATIVA,
   DENSIDADES,
   SOMBREAMENTO,
+  NUTRICAO_FLORADA,
+  MATO,
+  CUSTO_CAPINA_POR_HECTARE,
 } from "../data/constantes.js";
 
 /* ---------- Estado ---------- */
@@ -347,6 +349,16 @@ function acaoAvancar(state) {
         const r6 = aplicarSecaCriticaDia(r5.talhao);
         eventosHoje.push(...r6.eventos);
         tFinal = r6.talhao;
+      }
+      // Mato cresce (mais com chuva); acima do limiar, rouba sanidade.
+      if (tFinal.variedadeId && !estaEmRecuperacao(tFinal)) {
+        const cresc = mmDia > 0 ? MATO.crescimentoChuvaDia : MATO.crescimentoSecoDia;
+        const mato = Math.min(1, (tFinal.mato || 0) + cresc);
+        const sanidade =
+          mato >= MATO.limiarDano
+            ? Math.max(0, tFinal.sanidade - MATO.danoSanidadeDia)
+            : tFinal.sanidade;
+        tFinal = { ...tFinal, mato, sanidade };
       }
       novosTalhoes.push(tFinal);
     }
@@ -677,10 +689,14 @@ function acaoAplicarInsumo(state, { talhaoId, insumoId }) {
 
   // Lote D: defensivo zera pragas ANTES de aplicar (efeito principal)
   const tinhaPragas = Object.keys(talhao.pragas || {}).length > 0;
+  // Adubo na janela de florada (set-nov) = "adubação de choque" → nutre a safra.
+  const nutriFlorada = insumoId === "adubo" && NUTRICAO_FLORADA.meses.includes(state.tempo.mes);
   let novoState = trocarTalhao(state, talhaoId, (t) => {
     let t2 = t;
     if (insumoId === "defensivo") t2 = zerarPragas(t2);
-    return aplicarInsumo(t2, insumoId);
+    t2 = aplicarInsumo(t2, insumoId);
+    if (nutriFlorada) t2 = { ...t2, ciclo: { ...(t2.ciclo || {}), nutrido: true } };
+    return t2;
   });
   novoState = {
     ...novoState,
@@ -701,7 +717,9 @@ function acaoAplicarInsumo(state, { talhaoId, insumoId }) {
       ? tinhaPragas
         ? `🛡️ Defensivo eliminou as pragas do talhão.`
         : `🛡️ Defensivo aplicado preventivamente.`
-      : `🌱 Aplicou ${INSUMOS[insumoId].nome} no talhão.`;
+      : nutriFlorada
+        ? `🌱 Adubação de florada aplicada — safra fortalecida!`
+        : `🌱 Aplicou ${INSUMOS[insumoId].nome} no talhão.`;
   return comMensagem(novoState, msg);
 }
 
@@ -744,22 +762,21 @@ function acaoColher(state, { talhaoId, metodo }) {
   const custoOp = metodo === "colhedora" ? EQUIPAMENTOS.colhedora.custoOperacao * 5 : 0;
   const custoTotal = maoObra + custoOp;
 
-  // Lote A: alterna ciclo bienal do talhão após colheita +
-  // marca a safra como colhida (trava re-colheita até o reset de 1/set).
-  const stateComFlip = trocarTalhao(state, talhaoId, (t) => {
-    const tf = flipBienal(t);
-    return { ...tf, ciclo: { ...(tf.ciclo || {}), safraColhida: true } };
-  });
-  const cicloProx = stateComFlip.talhoes.find((t) => t.id === talhaoId)?.cicloBienal;
+  // Marca a safra como colhida (trava re-colheita até o reset de 1/set).
+  // A bienalidade alterna no RESET ANUAL (1/set), não na colheita.
+  const stateColhido = trocarTalhao(state, talhaoId, (t) => ({
+    ...t,
+    ciclo: { ...(t.ciclo || {}), safraColhida: true },
+  }));
 
   return comMensagem(
     {
-      ...stateComFlip,
-      caixa: stateComFlip.caixa - custoTotal,
+      ...stateColhido,
+      caixa: stateColhido.caixa - custoTotal,
       colheitaPendente: { ...colheita, talhaoId, variedadeId: talhao.variedadeId },
       fase: "aguardando_pos",
     },
-    `🍒 Colheu ${colheita.sacas} sacas (${metodo}): -R$${custoTotal}. Próxima safra: ${cicloProx}.`
+    `🍒 Colheu ${colheita.sacas} sacas (${metodo}): -R$${custoTotal}.`
   );
 }
 
@@ -1025,6 +1042,25 @@ function acaoAmostrar(state, { talhaoId }) {
   );
 }
 
+function acaoCapinar(state, { talhaoId }) {
+  const talhao = state.talhoes.find((t) => t.id === talhaoId);
+  if (!talhao || !talhao.variedadeId) return state;
+  if ((talhao.mato || 0) <= 0) {
+    return comMensagem(state, `O talhão já está limpo de mato.`);
+  }
+  const custo = Math.round(talhao.hectares * CUSTO_CAPINA_POR_HECTARE);
+  if (!podePagar(state.caixa, custo)) {
+    return comMensagem(state, `❌ Caixa insuficiente pra capinar (R$${custo}).`);
+  }
+  return comMensagem(
+    {
+      ...trocarTalhao(state, talhaoId, (t) => ({ ...t, mato: 0 })),
+      caixa: state.caixa - custo,
+    },
+    `🧹 Talhão capinado (${talhao.hectares}ha): -R$${custo}. Mato controlado.`
+  );
+}
+
 function acaoEsqueletar(state, { talhaoId }) {
   const talhao = state.talhoes.find((t) => t.id === talhaoId);
   if (!talhao) return state;
@@ -1182,6 +1218,8 @@ function reducerCore(state, action) {
       return acaoRecepar(state, action.payload);
     case "AMOSTRAR":
       return acaoAmostrar(state, action.payload);
+    case "CAPINAR":
+      return acaoCapinar(state, action.payload);
     case "INSTALAR_IRRIGACAO":
       return acaoInstalarIrrigacao(state, action.payload);
     case "CONTRATAR_MENSALISTA":

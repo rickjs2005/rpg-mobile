@@ -16,6 +16,7 @@ import {
   DENSIDADES,
   CUSTO_PLANTIO_POR_HECTARE,
   SOMBREAMENTO,
+  CUSTO_CAPINA_POR_HECTARE,
 } from "../data/constantes.js";
 import { PRAGAS, nivelPraga } from "../data/pragas.js";
 import { temPragaNaoRevelada } from "../logic/pragas.js";
@@ -189,6 +190,12 @@ export default function CardTalhao({ talhao }) {
           {talhao.irrigado && (
             <View style={[styles.chip, styles.chipPendente]}>
               <Text style={styles.chipTxt}>💧 Irrigado</Text>
+            </View>
+          )}
+          {/* Mato */}
+          {(talhao.mato || 0) > 0.15 && (
+            <View style={[styles.chip, styles.chipFalha]}>
+              <Text style={styles.chipTxt}>🌿 Mato {Math.round(talhao.mato * 100)}%</Text>
             </View>
           )}
           {/* Lote H8: chip densidade (só se não tradicional) */}
@@ -410,6 +417,16 @@ export default function CardTalhao({ talhao }) {
             }
           >
             🔍 Amostrar (R${CUSTO_AMOSTRAGEM})
+          </Botao>
+        )}
+
+        {/* Capina: aparece quando o mato cresce */}
+        {!ehVazio && !emRecuperacao && (talhao.mato || 0) > 0.2 && (
+          <Botao
+            pequeno
+            onPress={() => dispatch({ type: "CAPINAR", payload: { talhaoId: talhao.id } })}
+          >
+            🧹 Capinar (R${Math.round(talhao.hectares * CUSTO_CAPINA_POR_HECTARE)})
           </Botao>
         )}
 

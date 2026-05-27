@@ -263,11 +263,29 @@ export const VERANICO_DIAS_MIN = 10;       // dias secos consecutivos pra "carre
 export const CHUVA_FLORADA_MM_MIN = 5;     // chuva pós-veranico pra abrir flor
 export const FLORADA_JANELA = { inicioMes: 9, fimMes: 10 }; // set-out
 
-// Granação: jan-mar precisa de chuva pra o grão encher.
+// Granação: o grão enche da florada à colheita (nov-abr na Zona da Mata).
 // Sem água = grão "chocho", saca leve. Multiplier sobre as sacas.
-export const GRANACAO_MESES = [1, 2, 3];
-export const GRANACAO_MM_IDEAL = 300;      // mm acumulados ideais
-export const GRANACAO_MM_MINIMO = 100;     // abaixo disso, safra muito comprometida
+export const GRANACAO_MESES = [11, 12, 1, 2, 3, 4];
+export const GRANACAO_MM_IDEAL = 550;      // mm acumulados ideais (janela mais longa)
+export const GRANACAO_MM_MINIMO = 180;     // abaixo disso, safra muito comprometida
+
+// Nutrição de florada (set-nov): a "adubação de choque" que dá força à
+// planta recém-desperta. Sem adubar nessa janela, a safra perde potencial.
+export const NUTRICAO_FLORADA = {
+  meses: [9, 10, 11],
+  fatorSemNutricao: 0.8, // -20% de produção se não adubar na janela
+};
+
+// Mato/capina: o mato cresce com a chuva e rouba água/nutrientes.
+export const MATO = {
+  crescimentoChuvaDia: 0.018, // sobe por dia de chuva (cap 1.0)
+  crescimentoSecoDia: 0.004,  // sobe devagar mesmo sem chuva
+  penalidadeProducao: 0.35,   // mato cheio (1.0) = -35% de produção
+  danoSanidadeDia: 0.003,     // dreno de sanidade/dia quando mato alto
+  limiarDano: 0.6,            // acima disso, começa a roubar sanidade
+};
+// Capinar custa mão de obra por hectare.
+export const CUSTO_CAPINA_POR_HECTARE = 60;
 
 // Chuva em mm — sorteada por dia conforme tipo de clima.
 export const MM_MIN_DIA = {

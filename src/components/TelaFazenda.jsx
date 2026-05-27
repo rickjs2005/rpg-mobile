@@ -13,6 +13,7 @@ import { INSUMOS } from "../data/economia.js";
 import { formatarData } from "../logic/tempo.js";
 import { climaDescreve } from "../logic/clima.js";
 import { resumoFazenda } from "../logic/resumoFazenda.js";
+import { dicasManejo } from "../logic/dicasManejo.js";
 import { estaEmRecuperacao } from "../logic/talhao.js";
 import { UMIDADE_INICIAL, UMIDADE_PRONTA } from "../logic/pos_colheita.js";
 import { CUSTO_AMOSTRAGEM, ANOS_FORMACAO } from "../data/constantes.js";
@@ -37,8 +38,10 @@ export default function TelaFazenda({ setTela }) {
   const [vista, setVista] = useState("mapa"); // "mapa" | "lista"
   const [ordem, setOrdem] = useState("atencao"); // "atencao" | "sanidade" | "idade"
   const [talhaoModalId, setTalhaoModalId] = useState(null);
+  const [dicasExpand, setDicasExpand] = useState(false);
   const eventos = eventosCompat(state);
   const resumo = resumoFazenda(state);
+  const dicas = dicasManejo(state);
   const talhaoModal = state.talhoes.find((t) => t.id === talhaoModalId) || null;
 
   // ---- Ordenação dos talhões ----
@@ -134,6 +137,28 @@ export default function TelaFazenda({ setTela }) {
               </Botao>
             )}
           </View>
+        )}
+      </Painel>
+
+      {/* Manejo recomendado — agrônomo virtual (educativo) */}
+      <Painel icone="👨‍🌾" titulo="Manejo recomendado">
+        <View style={styles.dicasLista}>
+          {(dicasExpand ? dicas : dicas.slice(0, 3)).map((d, i) => (
+            <View key={i} style={styles.dicaItem}>
+              <Text style={styles.dicaIcone}>{d.icone}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.dicaTitulo}>{d.titulo}</Text>
+                <Text style={styles.dicaTexto}>{d.texto}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+        {dicas.length > 3 && (
+          <Pressable onPress={() => setDicasExpand((v) => !v)} hitSlop={6} style={styles.dicaVerMais}>
+            <Text style={styles.dicaVerMaisTxt}>
+              {dicasExpand ? "Ver menos ▲" : `Ver mais ${dicas.length - 3} ▼`}
+            </Text>
+          </Pressable>
         )}
       </Painel>
 
@@ -376,6 +401,25 @@ const styles = StyleSheet.create({
   toggleAtivo: { backgroundColor: tema.bg2, borderWidth: 1, borderColor: tema.dourado },
   toggleTxt: { color: tema.textoDim, fontSize: 12, fontWeight: "700" },
   toggleTxtAtivo: { color: tema.dourado },
+
+  /* Manejo recomendado (dicas educativas) */
+  dicasLista: { gap: 10 },
+  dicaItem: {
+    flexDirection: "row",
+    gap: 10,
+    backgroundColor: tema.bg3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: tema.linha,
+    borderLeftWidth: 4,
+    borderLeftColor: tema.verde,
+    padding: 10,
+  },
+  dicaIcone: { fontSize: 20, width: 26, textAlign: "center" },
+  dicaTitulo: { color: tema.texto, fontSize: 14, fontWeight: "800" },
+  dicaTexto: { color: tema.textoDim, fontSize: 12, lineHeight: 17, marginTop: 2 },
+  dicaVerMais: { alignSelf: "center", paddingVertical: 8, marginTop: 4 },
+  dicaVerMaisTxt: { color: tema.verde, fontSize: 12, fontWeight: "700" },
 
   /* Ações em massa */
   quickRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },

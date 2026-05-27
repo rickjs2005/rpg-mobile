@@ -74,6 +74,8 @@ export function criarTalhao(opts) {
     densidade: opts.densidade || "tradicional",
     // Lote H9: sombreado vs sol pleno
     sombreado: opts.sombreado || false,
+    // Mato/capina: 0 (limpo) a 1 (tomado). Cresce com a chuva.
+    mato: opts.mato || 0,
   };
 }
 
