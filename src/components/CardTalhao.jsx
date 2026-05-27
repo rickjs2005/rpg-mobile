@@ -16,10 +16,14 @@ import {
   DENSIDADES,
   CUSTO_PLANTIO_POR_HECTARE,
   SOMBREAMENTO,
+  CUSTO_CAPINA_POR_HECTARE,
 } from "../data/constantes.js";
 import { PRAGAS, nivelPraga } from "../data/pragas.js";
 import { temPragaNaoRevelada } from "../logic/pragas.js";
 import { estaEpocaColheita } from "../logic/tempo.js";
+import { calcularMaturacao } from "../logic/maturacao.js";
+import { colher } from "../logic/panha.js";
+import { nivelPorXp, desbloqueado, NIVEL_VARIEDADE } from "../data/niveis.js";
 import {
   categoriaIdade,
   estaEmRecuperacao,
@@ -66,6 +70,13 @@ export default function CardTalhao({ talhao }) {
   const ehVazio = !talhao.variedadeId;
   const podeEsq = podeSerEsqueletado(talhao);
   const podeRec = podeSerRecepado(talhao);
+
+  // Preview de colheita: estimativa de sacas por método (só quando colhível).
+  const estSacas = (metodo) => {
+    if (!podeColher) return 0;
+    const c = colher(talhao, calcularMaturacao(talhao, state.tempo.mes), metodo, state.equipamentos, state.equipe);
+    return c?.sacas ?? 0;
+  };
   const insumosNoInv = Object.keys(INSUMOS).filter(
     (k) => (state.inventario[k] || 0) > 0
   );
@@ -181,6 +192,12 @@ export default function CardTalhao({ talhao }) {
               <Text style={styles.chipTxt}>💧 Irrigado</Text>
             </View>
           )}
+          {/* Mato */}
+          {(talhao.mato || 0) > 0.15 && (
+            <View style={[styles.chip, styles.chipFalha]}>
+              <Text style={styles.chipTxt}>🌿 Mato {Math.round(talhao.mato * 100)}%</Text>
+            </View>
+          )}
           {/* Lote H8: chip densidade (só se não tradicional) */}
           {talhao.densidade && talhao.densidade !== "tradicional" && (
             <View style={styles.chip}>
@@ -211,6 +228,14 @@ export default function CardTalhao({ talhao }) {
           })}
         </View>
       )}
+
+      {/* Maturação dos frutos (só na janela de colheita) */}
+      {!ehVazio &&
+        talhao.idadeAnos >= ANOS_FORMACAO &&
+        !emRecuperacao &&
+        estaEpocaColheita(state.tempo) && (
+          <FrutosMaturacao perfil={calcularMaturacao(talhao, state.tempo.mes)} />
+        )}
 
       <View style={styles.acoes}>
         {ehVazio && (
@@ -275,25 +300,30 @@ export default function CardTalhao({ talhao }) {
               ).toLocaleString("pt-BR")}
             </Text>
 
-            {Object.entries(VARIEDADES).map(([id, v]) => (
-              <Botao
-                key={id}
-                pequeno
-                onPress={() =>
-                  dispatch({
-                    type: "PLANTAR",
-                    payload: {
-                      talhaoId: talhao.id,
-                      variedadeId: id,
-                      densidade: densidadeEscolhida,
-                      sombreado: sombreadoEscolhido,
-                    },
-                  })
-                }
-              >
-                🌱 Plantar {v.nome}
-              </Botao>
-            ))}
+            {Object.entries(VARIEDADES).map(([id, v]) => {
+              const lib = desbloqueado(NIVEL_VARIEDADE, id, nivelPorXp(state.xp).nivel);
+              return (
+                <Botao
+                  key={id}
+                  pequeno
+                  variante={lib ? "secundario" : "fantasma"}
+                  disabled={!lib}
+                  onPress={() =>
+                    dispatch({
+                      type: "PLANTAR",
+                      payload: {
+                        talhaoId: talhao.id,
+                        variedadeId: id,
+                        densidade: densidadeEscolhida,
+                        sombreado: sombreadoEscolhido,
+                      },
+                    })
+                  }
+                >
+                  {lib ? `🌱 Plantar ${v.nome}` : `🔒 ${v.nome} (Nv ${NIVEL_VARIEDADE[id]})`}
+                </Botao>
+              );
+            })}
           </View>
         )}
 
@@ -326,7 +356,7 @@ export default function CardTalhao({ talhao }) {
                 })
               }
             >
-              ⚒️ Manual
+              ⚒️ Manual (~{estSacas("manual")} sc)
             </Botao>
             <Botao
               pequeno
@@ -337,7 +367,7 @@ export default function CardTalhao({ talhao }) {
                 })
               }
             >
-              🌾 Derriça
+              🌾 Derriça (~{estSacas("derrica")} sc)
             </Botao>
             {state.equipamentos.includes("colhedora") &&
               talhao.terreno === "plano" && (
@@ -350,7 +380,7 @@ export default function CardTalhao({ talhao }) {
                     })
                   }
                 >
-                  🚜 Mecânico
+                  🚜 Mecânico (~{estSacas("colhedora")} sc)
                 </Botao>
               )}
           </>
@@ -387,6 +417,16 @@ export default function CardTalhao({ talhao }) {
             }
           >
             🔍 Amostrar (R${CUSTO_AMOSTRAGEM})
+          </Botao>
+        )}
+
+        {/* Capina: aparece quando o mato cresce */}
+        {!ehVazio && !emRecuperacao && (talhao.mato || 0) > 0.2 && (
+          <Botao
+            pequeno
+            onPress={() => dispatch({ type: "CAPINAR", payload: { talhaoId: talhao.id } })}
+          >
+            🧹 Capinar (R${Math.round(talhao.hectares * CUSTO_CAPINA_POR_HECTARE)})
           </Botao>
         )}
 
@@ -439,6 +479,32 @@ function corBarra(pct) {
   if (pct < 40) return tema.vermelho;
   if (pct < 70) return tema.dourado;
   return tema.verde;
+}
+
+// Fileira de frutos coloridos pela maturação real do talhão no mês.
+const COR_FRUTO = { maduro: "#c0392b", verde: tema.verde, seco: tema.madeira };
+function FrutosMaturacao({ perfil }) {
+  const total = 14;
+  const nMaduro = Math.round((perfil.maduro || 0) * total);
+  const nSeco = Math.round((perfil.seco || 0) * total);
+  const nVerde = Math.max(0, total - nMaduro - nSeco);
+  const dots = [
+    ...Array(nMaduro).fill("maduro"),
+    ...Array(nVerde).fill("verde"),
+    ...Array(nSeco).fill("seco"),
+  ];
+  return (
+    <View style={styles.matBox}>
+      <Text style={styles.matLabel}>
+        🍒 Maturação · {Math.round((perfil.maduro || 0) * 100)}% maduro
+      </Text>
+      <View style={styles.matDots}>
+        {dots.map((k, i) => (
+          <View key={i} style={[styles.frutoDot, { backgroundColor: COR_FRUTO[k] }]} />
+        ))}
+      </View>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -555,6 +621,22 @@ const styles = StyleSheet.create({
     color: tema.texto,
     fontSize: 10,
     fontWeight: "500",
+  },
+  matBox: {
+    backgroundColor: tema.bg3,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    gap: 6,
+  },
+  matLabel: { color: tema.textoDim, fontSize: 11, fontWeight: "700" },
+  matDots: { flexDirection: "row", flexWrap: "wrap", gap: 4 },
+  frutoDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.12)",
   },
   acoes: {
     flexDirection: "row",

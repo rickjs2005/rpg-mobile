@@ -32,7 +32,6 @@ import {
   envelhecerTalhao,
   aplicarInsumo,
   avancarEfeitosPendentesUmDia,
-  flipBienal,
   estaEmRecuperacao,
   estaFormado,
   podeSerEsqueletado,
@@ -85,6 +84,15 @@ import { INSUMOS, EQUIPAMENTOS, CERTIFICACOES, EQUIPE, TULHAS, TULHA_PROGRESSAO 
 import { PASSOS_TUTORIAL } from "../data/tutorial.js";
 import { MARCOS } from "../data/marcos.js";
 import {
+  nivelPorXp,
+  xpVender,
+  XP_MARCO,
+  NIVEL_VARIEDADE,
+  NIVEL_EQUIPAMENTO,
+  NIVEL_PROPRIEDADE,
+  desbloqueado,
+} from "../data/niveis.js";
+import {
   INICIO_ROCINHA_PRONTA,
   INICIO_TERRA_NUA,
   CUSTO_PLANTIO_POR_HECTARE,
@@ -96,6 +104,9 @@ import {
   COOPERATIVA,
   DENSIDADES,
   SOMBREAMENTO,
+  NUTRICAO_FLORADA,
+  MATO,
+  CUSTO_CAPINA_POR_HECTARE,
 } from "../data/constantes.js";
 
 /* ---------- Estado ---------- */
@@ -132,6 +143,8 @@ export function novaPartida(modo, perfil) {
     emprestimo: null, // Lote H7: financiamento Funcafé
     tulha: "pequena", // Lote H4: capacidade de estoque
     velocidade: 7, // dias por "Avançar" fora das fases diárias (config)
+    climaHoje: null, // { tipo, mm } do último dia processado (UI)
+    xp: 0, // experiência: vender sacas + marcos → sobe de nível → desbloqueia
     cooperativa: { filiado: false }, // Lote H6: cooperativa
     eventos: [], // Lote G6: log estruturado { tempo, texto, categoria }
     // Lote G1: tutorial ativo na primeira partida
@@ -173,6 +186,8 @@ function verificarMarcos(state) {
   if (novosCompletos === completos) return state;
   let novo = { ...state, marcos: novosCompletos };
   for (const e of eventos) novo = comMensagem(novo, e);
+  // Bônus de XP por cada marco recém-desbloqueado (1 evento = 1 marco).
+  if (eventos.length > 0) novo = ganharXp(novo, eventos.length * XP_MARCO);
   return novo;
 }
 
@@ -266,6 +281,23 @@ function trocarTalhao(state, id, fn) {
   };
 }
 
+// Adiciona XP e, se subiu de nível, emite mensagem de desbloqueio.
+function ganharXp(state, quantia) {
+  if (!quantia || quantia <= 0) return state;
+  const xpAntes = state.xp || 0;
+  const nivelAntes = nivelPorXp(xpAntes).nivel;
+  const xp = xpAntes + quantia;
+  let novo = { ...state, xp };
+  const def = nivelPorXp(xp);
+  if (def.nivel > nivelAntes) {
+    novo = comMensagem(
+      novo,
+      `⭐ Subiu pro nível ${def.nivel} — ${def.titulo}! Novos itens liberados na roça.`
+    );
+  }
+  return novo;
+}
+
 let proxLoteId = 1;
 function gerarIdLote() {
   return `l${Date.now().toString(36)}${proxLoteId++}`;
@@ -277,6 +309,7 @@ function acaoAvancar(state) {
   const passo = passoEmDias(state.fase, state.velocidade);
   const rng = createRng(state.rngState);
   let novo = state;
+  let climaHoje = state.climaHoje || null;
 
   for (let i = 0; i < passo; i++) {
     const antes = novo.tempo;
@@ -285,6 +318,7 @@ function acaoAvancar(state) {
     // Sorteia clima + mm de chuva do dia (Lote C)
     const climaDia = sortearClimaDia(rng, novo.tempo.mes);
     const mmDia = sortearMmDia(rng, climaDia);
+    climaHoje = { tipo: climaDia, mm: mmDia };
 
     // Processa efeitos pendentes (Lote A) + recuperação (Lote B) + ciclo (Lote C)
     const novosTalhoes = [];
@@ -315,6 +349,16 @@ function acaoAvancar(state) {
         const r6 = aplicarSecaCriticaDia(r5.talhao);
         eventosHoje.push(...r6.eventos);
         tFinal = r6.talhao;
+      }
+      // Mato cresce (mais com chuva); acima do limiar, rouba sanidade.
+      if (tFinal.variedadeId && !estaEmRecuperacao(tFinal)) {
+        const cresc = mmDia > 0 ? MATO.crescimentoChuvaDia : MATO.crescimentoSecoDia;
+        const mato = Math.min(1, (tFinal.mato || 0) + cresc);
+        const sanidade =
+          mato >= MATO.limiarDano
+            ? Math.max(0, tFinal.sanidade - MATO.danoSanidadeDia)
+            : tFinal.sanidade;
+        tFinal = { ...tFinal, mato, sanidade };
       }
       novosTalhoes.push(tFinal);
     }
@@ -437,7 +481,7 @@ function acaoAvancar(state) {
     }
   }
 
-  return { ...novo, rngState: rng.getState() };
+  return { ...novo, rngState: rng.getState(), climaHoje };
 }
 
 function finalizarSecagem(state) {
@@ -569,6 +613,9 @@ function acaoComprarEquipamento(state, { equipId }) {
   if (state.equipamentos.includes(equipId)) {
     return comMensagem(state, `Você já tem ${EQUIPAMENTOS[equipId].nome}.`);
   }
+  if (!desbloqueado(NIVEL_EQUIPAMENTO, equipId, nivelPorXp(state.xp).nivel)) {
+    return comMensagem(state, `🔒 ${EQUIPAMENTOS[equipId].nome} desbloqueia no nível ${NIVEL_EQUIPAMENTO[equipId]}.`);
+  }
   const custo = custoEquipamento(equipId);
   if (!podePagar(state.caixa, custo)) {
     return comMensagem(state, `❌ Caixa insuficiente pra ${EQUIPAMENTOS[equipId].nome}.`);
@@ -587,6 +634,9 @@ function acaoComprarPropriedade(state, { propId }) {
   if (state.propriedadesCompradas.includes(propId)) return state;
   const r = comprarProp(propId);
   if (!r) return state;
+  if (!desbloqueado(NIVEL_PROPRIEDADE, propId, nivelPorXp(state.xp).nivel)) {
+    return comMensagem(state, `🔒 Essa propriedade desbloqueia no nível ${NIVEL_PROPRIEDADE[propId]}.`);
+  }
   if (!podePagar(state.caixa, r.preco)) {
     return comMensagem(state, `❌ Caixa insuficiente pra essa propriedade.`);
   }
@@ -605,6 +655,9 @@ function acaoPlantar(state, { talhaoId, variedadeId, densidade = "tradicional", 
   const talhao = state.talhoes.find((t) => t.id === talhaoId);
   if (!talhao || talhao.variedadeId) return state;
   if (!VARIEDADES[variedadeId]) return state;
+  if (!desbloqueado(NIVEL_VARIEDADE, variedadeId, nivelPorXp(state.xp).nivel)) {
+    return comMensagem(state, `🔒 ${VARIEDADES[variedadeId].nome} desbloqueia no nível ${NIVEL_VARIEDADE[variedadeId]}.`);
+  }
   // Lote H8+H9: custo escalonado pela densidade × sombreamento
   const multDens = DENSIDADES[densidade]?.multiplicadorCusto || 1.0;
   const multSombra = sombreado ? SOMBREAMENTO.multiplicadorCusto : 1.0;
@@ -636,10 +689,14 @@ function acaoAplicarInsumo(state, { talhaoId, insumoId }) {
 
   // Lote D: defensivo zera pragas ANTES de aplicar (efeito principal)
   const tinhaPragas = Object.keys(talhao.pragas || {}).length > 0;
+  // Adubo na janela de florada (set-nov) = "adubação de choque" → nutre a safra.
+  const nutriFlorada = insumoId === "adubo" && NUTRICAO_FLORADA.meses.includes(state.tempo.mes);
   let novoState = trocarTalhao(state, talhaoId, (t) => {
     let t2 = t;
     if (insumoId === "defensivo") t2 = zerarPragas(t2);
-    return aplicarInsumo(t2, insumoId);
+    t2 = aplicarInsumo(t2, insumoId);
+    if (nutriFlorada) t2 = { ...t2, ciclo: { ...(t2.ciclo || {}), nutrido: true } };
+    return t2;
   });
   novoState = {
     ...novoState,
@@ -660,7 +717,9 @@ function acaoAplicarInsumo(state, { talhaoId, insumoId }) {
       ? tinhaPragas
         ? `🛡️ Defensivo eliminou as pragas do talhão.`
         : `🛡️ Defensivo aplicado preventivamente.`
-      : `🌱 Aplicou ${INSUMOS[insumoId].nome} no talhão.`;
+      : nutriFlorada
+        ? `🌱 Adubação de florada aplicada — safra fortalecida!`
+        : `🌱 Aplicou ${INSUMOS[insumoId].nome} no talhão.`;
   return comMensagem(novoState, msg);
 }
 
@@ -703,22 +762,21 @@ function acaoColher(state, { talhaoId, metodo }) {
   const custoOp = metodo === "colhedora" ? EQUIPAMENTOS.colhedora.custoOperacao * 5 : 0;
   const custoTotal = maoObra + custoOp;
 
-  // Lote A: alterna ciclo bienal do talhão após colheita +
-  // marca a safra como colhida (trava re-colheita até o reset de 1/set).
-  const stateComFlip = trocarTalhao(state, talhaoId, (t) => {
-    const tf = flipBienal(t);
-    return { ...tf, ciclo: { ...(tf.ciclo || {}), safraColhida: true } };
-  });
-  const cicloProx = stateComFlip.talhoes.find((t) => t.id === talhaoId)?.cicloBienal;
+  // Marca a safra como colhida (trava re-colheita até o reset de 1/set).
+  // A bienalidade alterna no RESET ANUAL (1/set), não na colheita.
+  const stateColhido = trocarTalhao(state, talhaoId, (t) => ({
+    ...t,
+    ciclo: { ...(t.ciclo || {}), safraColhida: true },
+  }));
 
   return comMensagem(
     {
-      ...stateComFlip,
-      caixa: stateComFlip.caixa - custoTotal,
+      ...stateColhido,
+      caixa: stateColhido.caixa - custoTotal,
       colheitaPendente: { ...colheita, talhaoId, variedadeId: talhao.variedadeId },
       fase: "aguardando_pos",
     },
-    `🍒 Colheu ${colheita.sacas} sacas (${metodo}): -R$${custoTotal}. Próxima safra: ${cicloProx}.`
+    `🍒 Colheu ${colheita.sacas} sacas (${metodo}): -R$${custoTotal}.`
   );
 }
 
@@ -781,7 +839,7 @@ function acaoVenderLote(state, { loteId }) {
   if (!porAno[ano]) porAno[ano] = { receita: 0, despesa: 0, sacas: 0 };
   porAno[ano] = { ...porAno[ano], sacas: (porAno[ano].sacas || 0) + lote.sacas };
 
-  return comMensagem(
+  const vendido = comMensagem(
     {
       ...state,
       caixa: state.caixa + valor,
@@ -796,6 +854,7 @@ function acaoVenderLote(state, { loteId }) {
     },
     `💰 Vendeu ${lote.sacas} sacas (${lote.classeNome}): +R$${valor.toLocaleString("pt-BR")}`
   );
+  return ganharXp(vendido, xpVender(lote.sacas));
 }
 
 function acaoAderirCertificacao(state, { certId }) {
@@ -983,6 +1042,25 @@ function acaoAmostrar(state, { talhaoId }) {
   );
 }
 
+function acaoCapinar(state, { talhaoId }) {
+  const talhao = state.talhoes.find((t) => t.id === talhaoId);
+  if (!talhao || !talhao.variedadeId) return state;
+  if ((talhao.mato || 0) <= 0) {
+    return comMensagem(state, `O talhão já está limpo de mato.`);
+  }
+  const custo = Math.round(talhao.hectares * CUSTO_CAPINA_POR_HECTARE);
+  if (!podePagar(state.caixa, custo)) {
+    return comMensagem(state, `❌ Caixa insuficiente pra capinar (R$${custo}).`);
+  }
+  return comMensagem(
+    {
+      ...trocarTalhao(state, talhaoId, (t) => ({ ...t, mato: 0 })),
+      caixa: state.caixa - custo,
+    },
+    `🧹 Talhão capinado (${talhao.hectares}ha): -R$${custo}. Mato controlado.`
+  );
+}
+
 function acaoEsqueletar(state, { talhaoId }) {
   const talhao = state.talhoes.find((t) => t.id === talhaoId);
   if (!talhao) return state;
@@ -1069,7 +1147,7 @@ function acaoVenderTudo(state) {
     melhorLote: melhor,
     porAno,
   };
-  return comMensagem(
+  const vendido = comMensagem(
     {
       ...state,
       caixa: state.caixa + total,
@@ -1078,6 +1156,7 @@ function acaoVenderTudo(state) {
     },
     `💰 Vendeu todo o estoque (${sacas} sacas): +R$${total.toLocaleString("pt-BR")}`
   );
+  return ganharXp(vendido, xpVender(sacas));
 }
 
 /* ---------- Dispatcher ---------- */
@@ -1139,6 +1218,8 @@ function reducerCore(state, action) {
       return acaoRecepar(state, action.payload);
     case "AMOSTRAR":
       return acaoAmostrar(state, action.payload);
+    case "CAPINAR":
+      return acaoCapinar(state, action.payload);
     case "INSTALAR_IRRIGACAO":
       return acaoInstalarIrrigacao(state, action.payload);
     case "CONTRATAR_MENSALISTA":

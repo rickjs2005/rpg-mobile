@@ -20,6 +20,7 @@ import {
   FLORADA_JANELA,
   GRANACAO_MESES,
   GRANACAO_MM_IDEAL,
+  NUTRICAO_FLORADA,
 } from "../data/constantes.js";
 
 export function cicloVazio() {
@@ -29,6 +30,7 @@ export function cicloVazio() {
     numFloradas: 0,
     chuvaGranacao: 0,
     safraColhida: false, // trava: 1 colheita por ano-safra (reset em 1/set)
+    nutrido: false, // adubação de florada feita? (set-nov) — afeta produção
   };
 }
 
@@ -40,8 +42,9 @@ export function cicloProduzindoSafra() {
     diasSemChuva: 0,
     floradaPrincipalOk: true,
     numFloradas: 1,
-    chuvaGranacao: 250, // boa granação
+    chuvaGranacao: 400, // boa granação (escala p/ ideal 550)
     safraColhida: false,
+    nutrido: true, // já produzindo normalmente
   };
 }
 
@@ -95,6 +98,7 @@ export function avancarCicloFenologicoDia(talhao, mmDia, tempo, podeAcumular) {
         numFloradas,
         chuvaGranacao,
         safraColhida: ciclo.safraColhida || false,
+        nutrido: ciclo.nutrido || false,
       },
     },
     eventos,
@@ -109,7 +113,15 @@ export function resetarCicloAnual(talhao) {
   if (!ciclo.floradaPrincipalOk && talhao.variedadeId) {
     eventos.push(`💔 Janela de florada fechou sem florada principal — safra perdida.`);
   }
-  return { talhao: { ...talhao, ciclo: cicloVazio() }, eventos };
+  // Bienalidade: ao virar a temporada (1/set), alterna alta ↔ baixa.
+  const proximo = talhao.cicloBienal === "alta" ? "baixa" : "alta";
+  eventos.push(
+    `📊 Nova temporada começou — safra ${proximo === "alta" ? "ALTA" : "baixa"} esperada este ano.`
+  );
+  return {
+    talhao: { ...talhao, ciclo: cicloVazio(), cicloBienal: proximo },
+    eventos,
+  };
 }
 
 /* ---------- Multipliers consumidos pela panha ---------- */
@@ -122,7 +134,9 @@ export function fatorCicloProducao(talhao) {
     0.3,
     Math.min(1.0, ciclo.chuvaGranacao / GRANACAO_MM_IDEAL)
   );
-  return floradaFator * granacaoFator;
+  // Nutrição de florada: sem a adubação de choque, a safra rende menos.
+  const nutricaoFator = ciclo.nutrido ? 1.0 : NUTRICAO_FLORADA.fatorSemNutricao;
+  return floradaFator * granacaoFator * nutricaoFator;
 }
 
 // Ajusta o perfil de maturação por número de floradas:

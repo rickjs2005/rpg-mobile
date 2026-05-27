@@ -9,6 +9,7 @@ import { useJogo } from "../hooks/useJogo.jsx";
 import Botao from "./Botao.jsx";
 import { tema, corVariedade } from "../styles/tema.js";
 import { VARIEDADES } from "../data/cafe.js";
+import { nivelPorXp, desbloqueado, NIVEL_PROPRIEDADE } from "../data/niveis.js";
 
 const IMG = {
   nua: require("../../assets/terras/nua.jpg"),
@@ -26,6 +27,7 @@ function Chip({ txt, cor, bg }) {
 export default function CardPropriedade({ prop }) {
   const { state, dispatch } = useJogo();
   const semGrana = state.caixa < prop.preco;
+  const lib = desbloqueado(NIVEL_PROPRIEDADE, prop.id, nivelPorXp(state.xp).nivel);
   const variedade = prop.variedade ? VARIEDADES[prop.variedade] : null;
   const pronta = prop.tipo === "pronta";
 
@@ -59,13 +61,17 @@ export default function CardPropriedade({ prop }) {
 
         <Botao
           fullWidth
-          variante={semGrana ? "fantasma" : "primario"}
-          disabled={semGrana}
+          variante={!lib || semGrana ? "fantasma" : "primario"}
+          disabled={!lib || semGrana}
           onPress={() =>
             dispatch({ type: "COMPRAR_PROPRIEDADE", payload: { propId: prop.id } })
           }
         >
-          {semGrana ? "Sem caixa" : "➕ Adquirir"}
+          {!lib
+            ? `🔒 Desbloqueia no nível ${NIVEL_PROPRIEDADE[prop.id]}`
+            : semGrana
+            ? "Sem caixa"
+            : "➕ Adquirir"}
         </Botao>
       </View>
     </View>

@@ -52,7 +52,7 @@ import Dashboard from "./src/components/Dashboard.jsx";
 
 function Tela({ id, setTela }) {
   switch (id) {
-    case "fazenda": return <TelaFazenda />;
+    case "fazenda": return <TelaFazenda setTela={setTela} />;
     case "loja": return <TelaLoja />;
     case "propriedades": return <TelaPropriedades />;
     case "mercado": return <TelaMercado />;

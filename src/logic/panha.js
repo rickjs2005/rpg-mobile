@@ -5,7 +5,7 @@
    após a seletividade do método de colheita.
    ============================================================ */
 
-import { SACAS_BASE_POR_MIL_PES, SOMBREAMENTO } from "../data/constantes.js";
+import { SACAS_BASE_POR_MIL_PES, SOMBREAMENTO, MATO } from "../data/constantes.js";
 import { VARIEDADES } from "../data/cafe.js";
 import { efeitoEquipamento } from "./equipamentos.js";
 import { fatorBienalidade, fatorIdadeProdutiva, estaEmRecuperacao } from "./talhao.js";
@@ -59,6 +59,8 @@ export function colher(talhao, perfilMaturacao, metodo, equipamentos = [], equip
 
   // Lote H9: sombreamento reduz produção
   const sombra = talhao.sombreado ? SOMBREAMENTO.multiplicadorProducao : 1.0;
+  // Mato compete por água/nutrientes — reduz a produção.
+  const fatorMato = 1 - (talhao.mato || 0) * MATO.penalidadeProducao;
 
   const sacasPotencial = (talhao.pes / 1000) * sacasBasePor1000;
   const sacas = Math.round(
@@ -70,7 +72,8 @@ export function colher(talhao, perfilMaturacao, metodo, equipamentos = [], equip
       bienal *
       idade *
       ciclo *
-      sombra
+      sombra *
+      fatorMato
   );
 
   // Distribuição do que efetivamente foi pro saco (usa perfil ajustado por floradas)

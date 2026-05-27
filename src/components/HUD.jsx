@@ -9,6 +9,7 @@ import {
   totalTalhoesComPragas,
 } from "../logic/alertas.js";
 import { rotuloMercado } from "../logic/mercado.js";
+import { progressoNivel } from "../data/niveis.js";
 import { tema } from "../styles/tema.js";
 import Botao from "./Botao.jsx";
 
@@ -31,6 +32,7 @@ export default function HUD() {
 
   const proximo = calcularProximoEvento(state);
   const alertas = calcularAlertas(state);
+  const prog = progressoNivel(state.xp);
   const saude = saudeFazenda(state);
   const sacas = totalSacasEstoque(state);
   const pragasN = totalTalhoesComPragas(state);
@@ -48,6 +50,17 @@ export default function HUD() {
           </Text>
         </View>
       )}
+
+      {/* Linha XP: nível + barra de progresso */}
+      <View style={styles.xpRow}>
+        <Text style={styles.xpNivel} numberOfLines={1}>
+          Nv {prog.atual.nivel} · {prog.atual.titulo}
+        </Text>
+        <View style={styles.xpBarra}>
+          <View style={[styles.xpFill, { width: `${Math.round(prog.frac * 100)}%` }]} />
+        </View>
+        <Text style={styles.xpFaltam}>{prog.prox ? `${prog.faltam} XP` : "MÁX"}</Text>
+      </View>
 
       {/* Linha 1: Caixa + Data + Saúde */}
       <View style={styles.linhaInfo}>
@@ -163,6 +176,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
+  xpRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  xpNivel: { color: tema.dourado, fontSize: 11, fontWeight: "800", flexShrink: 0 },
+  xpBarra: {
+    flex: 1,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: tema.bg3,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: tema.linha,
+  },
+  xpFill: { height: "100%", borderRadius: 999, backgroundColor: tema.gold },
+  xpFaltam: { color: tema.textoDim, fontSize: 10, fontWeight: "700", fontVariant: ["tabular-nums"] },
   linhaInfo: {
     flexDirection: "row",
     gap: 8,
