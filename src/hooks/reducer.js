@@ -85,6 +85,8 @@ import { PASSOS_TUTORIAL } from "../data/tutorial.js";
 import { MARCOS } from "../data/marcos.js";
 import { MISSOES_INICIAIS, missaoPorId, infoMissao, proximaMissao } from "../data/missoes.js";
 import { leilaoAberto, faixaMultiplicador, classificacaoLeilao } from "../data/leilao.js";
+import { festaDoDia } from "../data/festas.js";
+import { PARAMS_MERCADO } from "../data/mercado.js";
 import { valorLote } from "../logic/precos.js";
 import {
   nivelPorXp,
@@ -165,6 +167,8 @@ export function novaPartida(modo, perfil) {
     marcos: {},
     // Missões/contratos ativos (3) + concluídos
     missoes: { ativas: [...MISSOES_INICIAIS], completadas: {} },
+    // Festa cultural com efeito temporário (ex.: desconto em insumos)
+    festaAtiva: null,
   };
 }
 
@@ -510,6 +514,42 @@ function acaoAvancar(state) {
       }
     }
 
+    // Festas culturais: expira a festa ativa e dispara a do dia.
+    if (novo.festaAtiva) {
+      const dr = novo.festaAtiva.diasRestantes - 1;
+      if (dr <= 0) {
+        const nome = novo.festaAtiva.nome;
+        novo = comMensagem({ ...novo, festaAtiva: null }, `🎪 ${nome} acabou — preços normais voltaram.`);
+      } else {
+        novo = { ...novo, festaAtiva: { ...novo.festaAtiva, diasRestantes: dr } };
+      }
+    }
+    const festa = festaDoDia(novo.tempo.mes, novo.tempo.dia);
+    if (festa) {
+      novo = comMensagem(novo, `${festa.icone} ${festa.nome} — ${festa.desc}`);
+      const ef = festa.efeito;
+      if (ef.tipo === "xp") {
+        novo = ganharXp(novo, ef.valor);
+      } else if (ef.tipo === "mercado") {
+        const indice = Math.min(PARAMS_MERCADO.indiceMax, (novo.mercado?.indice || 1) + ef.valor);
+        novo = { ...novo, mercado: { ...novo.mercado, indice, tendencia: 1 } };
+      } else if (ef.tipo === "descontoInsumos") {
+        novo = comMensagem(
+          {
+            ...novo,
+            festaAtiva: {
+              id: festa.id,
+              nome: festa.nome,
+              icone: festa.icone,
+              desconto: ef.valor,
+              diasRestantes: ef.duracaoDias,
+            },
+          },
+          `${festa.icone} Insumos com ${Math.round(ef.valor * 100)}% de desconto por ${ef.duracaoDias} dias!`
+        );
+      }
+    }
+
     // Virou ano? envelhece todos os talhões em 1 ano.
     if (novo.tempo.ano > antes.ano) {
       novo = {
@@ -632,6 +672,10 @@ function acaoComprarInsumo(state, { insumoId, qtd = 1 }) {
   let custoUnit = custoInsumo(insumoId);
   if (state.cooperativa?.filiado) {
     custoUnit = Math.round(custoUnit * (1 - COOPERATIVA.descontoInsumos));
+  }
+  // Festa do Café: desconto temporário em insumos (acumula com cooperativa).
+  if (state.festaAtiva?.desconto) {
+    custoUnit = Math.round(custoUnit * (1 - state.festaAtiva.desconto));
   }
   const custo = custoUnit * qtd;
   if (!podePagar(state.caixa, custo)) {

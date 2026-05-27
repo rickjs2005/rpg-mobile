@@ -68,6 +68,16 @@ export default function TelaLoja() {
 
   return (
     <View style={styles.container}>
+      {/* ---------- Festa do Café: desconto temporário ---------- */}
+      {state.festaAtiva?.desconto ? (
+        <View style={styles.festaBanner}>
+          <Text style={styles.festaBannerTxt}>
+            {state.festaAtiva.icone} {state.festaAtiva.nome}: −
+            {Math.round(state.festaAtiva.desconto * 100)}% em insumos · {state.festaAtiva.diasRestantes} dias
+          </Text>
+        </View>
+      ) : null}
+
       {/* ---------- 1. COOPERATIVA ---------- */}
       {filiado ? (
         <View style={[styles.painel, styles.coopBanner]}>
@@ -389,6 +399,15 @@ const MB = tema.madeiraBase;
 
 const styles = StyleSheet.create({
   container: { gap: 16 },
+
+  festaBanner: {
+    backgroundColor: "#fff3d2",
+    borderWidth: 2,
+    borderColor: tema.gold,
+    borderRadius: 12,
+    padding: 12,
+  },
+  festaBannerTxt: { color: tema.douradoEscuro, fontSize: 13, fontWeight: "800" },
 
   h3: {
     color: M,
