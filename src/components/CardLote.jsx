@@ -21,7 +21,9 @@ export default function CardLote({ lote }) {
   const cor = variedade ? corVariedade(variedade.cor) : tema.gold;
   const precoSaca = precoFinalSaca(state, lote);
   const total = valorLote(state, lote);
-  const leilaoOn = lote.microlote && leilaoAberto(state.tempo?.mes);
+  const janelaLeilao = lote.microlote && leilaoAberto(state.tempo?.mes);
+  const leilaoUsado = state.leilaoAno === state.tempo?.ano;
+  const leilaoOn = janelaLeilao && !leilaoUsado;
   const faixa = leilaoOn ? faixaMultiplicador(lote.sca || 85) : null;
 
   return (
@@ -70,6 +72,13 @@ export default function CardLote({ lote }) {
               🏆 Leiloar
             </Botao>
           </View>
+        )}
+
+        {/* Leilão já usado este ano (anual, Cup of Excellence) */}
+        {janelaLeilao && leilaoUsado && (
+          <Text style={styles.leilaoUsado}>
+            🏆 Cup of Excellence já realizado este ano — volta na próxima safra
+          </Text>
         )}
 
         {/* Footer: valor + vender */}
@@ -146,6 +155,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   leilaoTxt: { color: tema.douradoEscuro, fontSize: 12, fontWeight: "800" },
+  leilaoUsado: { color: tema.textoDim, fontSize: 11, fontWeight: "600", fontStyle: "italic" },
 
   footer: {
     flexDirection: "row",
