@@ -118,6 +118,7 @@ import {
   NUTRICAO_FLORADA,
   MATO,
   CUSTO_CAPINA_POR_HECTARE,
+  CUSTO_MANUTENCAO_HA_MES,
 } from "../data/constantes.js";
 
 /* ---------- Estado ---------- */
@@ -178,6 +179,8 @@ export function novaPartida(modo, perfil) {
     // Perks de capacitação (ATER) + agenda de visitas
     perks: {},
     ater: { proximaVisitaDia: ATER_PRIMEIRA_VISITA, cursoOferecido: null, cursosFeitos: {} },
+    // Ano do último leilão (Cup of Excellence é anual: 1 lote por temporada)
+    leilaoAno: 0,
   };
 }
 
@@ -457,6 +460,28 @@ function acaoAvancar(state) {
         novo = comMensagem(
           ajustarCaixa(novo, -COOPERATIVA.anuidade),
           `🏢 Anuidade ${COOPERATIVA.nome}: -R$${COOPERATIVA.anuidade.toLocaleString("pt-BR")}`
+        );
+      }
+    }
+
+    // Custos fixos de escala (1º dia do mês): manutenção da lavoura + equipamentos.
+    if (novo.tempo.dia === 1) {
+      const haPlantados = novo.talhoes.reduce((acc, t) => acc + (t.variedadeId ? t.hectares : 0), 0);
+      if (haPlantados > 0) {
+        const manut = Math.round(haPlantados * CUSTO_MANUTENCAO_HA_MES);
+        novo = comMensagem(
+          ajustarCaixa(novo, -manut),
+          `🧹 Manutenção da lavoura (${haPlantados.toFixed(1)}ha): -R$${manut.toLocaleString("pt-BR")}`
+        );
+      }
+      const manutEquip = (novo.equipamentos || []).reduce(
+        (acc, id) => acc + (EQUIPAMENTOS[id]?.custoOperacao || 0),
+        0
+      );
+      if (manutEquip > 0) {
+        novo = comMensagem(
+          ajustarCaixa(novo, -manutEquip),
+          `🔧 Manutenção de equipamentos: -R$${manutEquip.toLocaleString("pt-BR")}`
         );
       }
     }
@@ -952,6 +977,17 @@ function acaoIniciarPosColheita(state, { metodoPos }) {
   );
 }
 
+// Oferta x demanda: vender N sacas derruba o índice do mercado (freio de
+// escala no late game). O índice se recupera com a deriva diária.
+function deprimirMercado(state, sacas) {
+  if (!state.mercado || !sacas) return state;
+  const novoIndice = Math.max(
+    PARAMS_MERCADO.indiceMin,
+    (state.mercado.indice ?? 1) - sacas * PARAMS_MERCADO.impactoVendaPorSaca
+  );
+  return { ...state, mercado: { ...state.mercado, indice: novoIndice } };
+}
+
 function mercadoEfetivo(state) {
   let merc = fatorMercado(state.mercado);
   // Lote H6: floor garantido se cooperativa
@@ -1006,7 +1042,7 @@ function acaoVenderLote(state, { loteId }) {
     },
     `💰 Vendeu ${lote.sacas} sacas (${lote.classeNome}): +R$${valor.toLocaleString("pt-BR")}`
   );
-  return ganharXp(vendido, xpVender(lote.sacas));
+  return ganharXp(deprimirMercado(vendido, lote.sacas), xpVender(lote.sacas));
 }
 
 function acaoLeiloar(state, { loteId }) {
@@ -1017,6 +1053,9 @@ function acaoLeiloar(state, { loteId }) {
   }
   if (!leilaoAberto(state.tempo.mes)) {
     return comMensagem(state, `❌ O leilão de especiais abre na primavera (set–nov).`);
+  }
+  if (state.leilaoAno === state.tempo.ano) {
+    return comMensagem(state, `❌ Você já leiloou um lote este ano — o Cup of Excellence é anual.`);
   }
   const rng = createRng(state.rngState);
   const faixa = faixaMultiplicador(lote.sca || 85);
@@ -1040,6 +1079,7 @@ function acaoLeiloar(state, { loteId }) {
     ...state,
     rngState: rng.getState(),
     caixa: state.caixa + valor,
+    leilaoAno: state.tempo.ano,
     estoqueSacas: state.estoqueSacas.filter((l) => l.id !== loteId),
     stats: {
       ...stats,
@@ -1380,7 +1420,7 @@ function acaoVenderTudo(state) {
     },
     `💰 Vendeu todo o estoque (${sacas} sacas): +R$${total.toLocaleString("pt-BR")}`
   );
-  return ganharXp(vendido, xpVender(sacas));
+  return ganharXp(deprimirMercado(vendido, sacas), xpVender(sacas));
 }
 
 /* ---------- Dispatcher ---------- */

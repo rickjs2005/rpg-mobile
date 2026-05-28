@@ -66,6 +66,7 @@ export const NIVEL_EQUIPAMENTO = {
   classificadora: 4,
 };
 export const NIVEL_PROPRIEDADE = {
+  roca_vizinha: 2,
   sitio_baixada: 2,
   ladeira_serra: 2,
   ribeirao_fundo: 3,

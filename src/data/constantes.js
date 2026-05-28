@@ -218,6 +218,11 @@ export const CUSTO_MAO_OBRA_PANHA = {
   colhedora: 0,  // cobra só o custoOperacao da colhedora (fixo)
 };
 
+/* ---------- Custos fixos de escala (cobrados todo dia 1º do mês) ---------- */
+// Manutenção da lavoura por hectare plantado (capina geral, conservação,
+// mão de obra base). Faz fazenda grande ter overhead — expandir é decisão.
+export const CUSTO_MANUTENCAO_HA_MES = 60;
+
 /* ---------- Venda de terra (revenda do talhão) ---------- */
 // Valor de referência por hectare conforme o terreno (R$).
 export const VALOR_HECTARE = { plano: 7000, montanhoso: 4500 };
@@ -232,8 +237,8 @@ export const INICIO_ROCINHA_PRONTA = {
   // 1 talhão de Catuaí Vermelho já formado, pequeno e apertado.
   talhao: {
     variedadeId: "catuai_vermelho",
-    hectares: 1.2,
-    pes: 800,
+    hectares: 1.5,
+    pes: 1200,
     terreno: "plano",
     inclinacao: 0.06,
     idadeAnos: 4, // já formado

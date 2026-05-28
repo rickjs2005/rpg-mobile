@@ -16,6 +16,9 @@ export const PARAMS_MERCADO = {
   probMudarTendenciaDia: 0.05,         // ~35% por semana
   // Probabilidade de evento macro (raro, dramático).
   probEventoMacroDia: 0.0015,
+  // Oferta x demanda: cada saca vendida derruba o índice (recupera com a
+  // deriva diária). Vender em massa achata o preço — freio de escala.
+  impactoVendaPorSaca: 0.0009,
 };
 
 // Eventos macro: notícias que afetam o mercado mundial.

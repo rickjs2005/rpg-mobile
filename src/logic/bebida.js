@@ -83,9 +83,11 @@ function calcularPeneira(talhao) {
   return Math.max(12, Math.min(19, p));
 }
 
-/* ---------- SCA pontos (60-95) ---------- */
+/* ---------- SCA pontos (58-92) ----------
+   Bar mais alto: microlote (≥85) exige score ~0.79 (antes ~0.71),
+   tornando o café especial mais difícil/raro. */
 function scoreSCA(scoreNormalizado) {
-  return Math.round(60 + scoreNormalizado * 35);
+  return Math.round(58 + scoreNormalizado * 34);
 }
 
 function classeFromSCA(sca) {

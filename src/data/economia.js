@@ -279,6 +279,16 @@ export const PROPRIEDADES_VENDA = [
     desc: "Catuaí formado em altitude — bebida fina. Montanhoso, melhor com drone/turma.",
   },
   {
+    id: "roca_vizinha",
+    nome: "Roça Vizinha",
+    hectares: 1.5,
+    terreno: "montanhoso",
+    tipo: "pronta",
+    variedade: "catuai_amarelo",
+    preco: 30000,
+    desc: "Pequena lavoura de Catuaí já produzindo no morro vizinho — renda imediata pra crescer sem esperar 3 anos.",
+  },
+  {
     id: "ribeirao_fundo",
     nome: "Ribeirão Fundo",
     hectares: 5,
