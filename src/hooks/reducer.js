@@ -55,7 +55,7 @@ import {
   custoMetodoPos,
   podePagar,
 } from "../logic/economia.js";
-import { comprar as comprarProp } from "../logic/propriedades.js";
+import { comprar as comprarProp, valorVendaTalhao } from "../logic/propriedades.js";
 import {
   certsVazias,
   aderir as aderirCert,
@@ -85,6 +85,14 @@ import { PASSOS_TUTORIAL } from "../data/tutorial.js";
 import { MARCOS } from "../data/marcos.js";
 import { MISSOES_INICIAIS, missaoPorId, infoMissao, proximaMissao } from "../data/missoes.js";
 import { leilaoAberto, faixaMultiplicador, classificacaoLeilao } from "../data/leilao.js";
+import { festaDoDia } from "../data/festas.js";
+import {
+  ATER_PRIMEIRA_VISITA,
+  ATER_INTERVALO_DIAS,
+  cursoPorId,
+  proximoCurso,
+} from "../data/ater.js";
+import { PARAMS_MERCADO } from "../data/mercado.js";
 import { valorLote } from "../logic/precos.js";
 import {
   nivelPorXp,
@@ -165,7 +173,17 @@ export function novaPartida(modo, perfil) {
     marcos: {},
     // Missões/contratos ativos (3) + concluídos
     missoes: { ativas: [...MISSOES_INICIAIS], completadas: {} },
+    // Festa cultural com efeito temporário (ex.: desconto em insumos)
+    festaAtiva: null,
+    // Perks de capacitação (ATER) + agenda de visitas
+    perks: {},
+    ater: { proximaVisitaDia: ATER_PRIMEIRA_VISITA, cursoOferecido: null, cursosFeitos: {} },
   };
+}
+
+// Helper de perk.
+function temPerk(state, id) {
+  return !!state.perks?.[id];
 }
 
 // Verifica todos os marcos. Se algum passou a satisfazer a condição
@@ -510,6 +528,65 @@ function acaoAvancar(state) {
       }
     }
 
+    // Festas culturais: expira a festa ativa e dispara a do dia.
+    if (novo.festaAtiva) {
+      const dr = novo.festaAtiva.diasRestantes - 1;
+      if (dr <= 0) {
+        const nome = novo.festaAtiva.nome;
+        novo = comMensagem({ ...novo, festaAtiva: null }, `🎪 ${nome} acabou — preços normais voltaram.`);
+      } else {
+        novo = { ...novo, festaAtiva: { ...novo.festaAtiva, diasRestantes: dr } };
+      }
+    }
+    const festa = festaDoDia(novo.tempo.mes, novo.tempo.dia);
+    if (festa) {
+      novo = comMensagem(novo, `${festa.icone} ${festa.nome} — ${festa.desc}`);
+      const ef = festa.efeito;
+      if (ef.tipo === "xp") {
+        novo = ganharXp(novo, ef.valor);
+      } else if (ef.tipo === "mercado") {
+        const indice = Math.min(PARAMS_MERCADO.indiceMax, (novo.mercado?.indice || 1) + ef.valor);
+        novo = { ...novo, mercado: { ...novo.mercado, indice, tendencia: 1 } };
+      } else if (ef.tipo === "descontoInsumos") {
+        novo = comMensagem(
+          {
+            ...novo,
+            festaAtiva: {
+              id: festa.id,
+              nome: festa.nome,
+              icone: festa.icone,
+              desconto: ef.valor,
+              diasRestantes: ef.duracaoDias,
+            },
+          },
+          `${festa.icone} Insumos com ${Math.round(ef.valor * 100)}% de desconto por ${ef.duracaoDias} dias!`
+        );
+      }
+    }
+
+    // ATER: visita periódica da extensão rural com oferta de curso.
+    if (!novo.ater) {
+      novo = {
+        ...novo,
+        ater: { proximaVisitaDia: novo.tempo.totalDias + ATER_PRIMEIRA_VISITA, cursoOferecido: null, cursosFeitos: {} },
+      };
+    }
+    if (novo.tempo.totalDias >= novo.ater.proximaVisitaDia) {
+      const ater = { ...novo.ater, proximaVisitaDia: novo.ater.proximaVisitaDia + ATER_INTERVALO_DIAS };
+      if (!ater.cursoOferecido) {
+        const prox = proximoCurso(ater.cursosFeitos, nivelPorXp(novo.xp).nivel);
+        if (prox) {
+          ater.cursoOferecido = prox;
+          const c = cursoPorId(prox);
+          novo = comMensagem({ ...novo, ater }, `🧑‍🏫 Agente da EMATER visitou! Curso disponível: ${c.icone} ${c.nome}.`);
+        } else {
+          novo = { ...novo, ater };
+        }
+      } else {
+        novo = { ...novo, ater };
+      }
+    }
+
     // Virou ano? envelhece todos os talhões em 1 ano.
     if (novo.tempo.ano > antes.ano) {
       novo = {
@@ -633,6 +710,10 @@ function acaoComprarInsumo(state, { insumoId, qtd = 1 }) {
   if (state.cooperativa?.filiado) {
     custoUnit = Math.round(custoUnit * (1 - COOPERATIVA.descontoInsumos));
   }
+  // Festa do Café: desconto temporário em insumos (acumula com cooperativa).
+  if (state.festaAtiva?.desconto) {
+    custoUnit = Math.round(custoUnit * (1 - state.festaAtiva.desconto));
+  }
   const custo = custoUnit * qtd;
   if (!podePagar(state.caixa, custo)) {
     return comMensagem(state, `❌ Caixa insuficiente pra ${INSUMOS[insumoId].nome}.`);
@@ -690,6 +771,30 @@ function acaoComprarPropriedade(state, { propId }) {
   );
 }
 
+function acaoVenderTalhao(state, { talhaoId }) {
+  const talhao = state.talhoes.find((t) => t.id === talhaoId);
+  if (!talhao) return state;
+  if (state.colheitaPendente?.talhaoId === talhaoId || state.loteSecagem?.talhaoId === talhaoId) {
+    return comMensagem(state, `❌ Termine a colheita/secagem deste talhão antes de vendê-lo.`);
+  }
+  if (estaEmRecuperacao(talhao)) {
+    return comMensagem(state, `❌ Talhão em recuperação não pode ser vendido.`);
+  }
+  const valor = valorVendaTalhao(talhao);
+  const propriedadesCompradas = talhao.propId
+    ? state.propriedadesCompradas.filter((p) => p !== talhao.propId)
+    : state.propriedadesCompradas;
+  return comMensagem(
+    {
+      ...state,
+      caixa: state.caixa + valor,
+      talhoes: state.talhoes.filter((t) => t.id !== talhaoId),
+      propriedadesCompradas,
+    },
+    `💵 Vendeu a terra${talhao.variedadeId ? " (com lavoura)" : ""} de ${talhao.hectares}ha: +R$${valor.toLocaleString("pt-BR")}.`
+  );
+}
+
 function acaoPlantar(state, { talhaoId, variedadeId, densidade = "tradicional", sombreado = false }) {
   const talhao = state.talhoes.find((t) => t.id === talhaoId);
   if (!talhao || talhao.variedadeId) return state;
@@ -728,11 +833,14 @@ function acaoAplicarInsumo(state, { talhaoId, insumoId }) {
 
   // Lote D: defensivo zera pragas ANTES de aplicar (efeito principal)
   const tinhaPragas = Object.keys(talhao.pragas || {}).length > 0;
-  // Adubo na janela de florada (set-nov) = "adubação de choque" → nutre a safra.
-  const nutriFlorada = insumoId === "adubo" && NUTRICAO_FLORADA.meses.includes(state.tempo.mes);
+  // Qualquer adubação na janela de florada (set-nov) nutre a safra.
+  const ADUBOS = ["adubo", "esterco", "adubo_foliar"];
+  const nutriFlorada = ADUBOS.includes(insumoId) && NUTRICAO_FLORADA.meses.includes(state.tempo.mes);
+  // Defensivo (químico) e bio-controle eliminam pragas.
+  const limpaPragas = insumoId === "defensivo" || insumoId === "bio_controle";
   let novoState = trocarTalhao(state, talhaoId, (t) => {
     let t2 = t;
-    if (insumoId === "defensivo") t2 = zerarPragas(t2);
+    if (limpaPragas) t2 = zerarPragas(t2);
     t2 = aplicarInsumo(t2, insumoId);
     if (nutriFlorada) t2 = { ...t2, ciclo: { ...(t2.ciclo || {}), nutrido: true } };
     return t2;
@@ -756,9 +864,13 @@ function acaoAplicarInsumo(state, { talhaoId, insumoId }) {
       ? tinhaPragas
         ? `🛡️ Defensivo eliminou as pragas do talhão.`
         : `🛡️ Defensivo aplicado preventivamente.`
-      : nutriFlorada
-        ? `🌱 Adubação de florada aplicada — safra fortalecida!`
-        : `🌱 Aplicou ${INSUMOS[insumoId].nome} no talhão.`;
+      : insumoId === "bio_controle"
+        ? tinhaPragas
+          ? `🐞 Controle biológico eliminou as pragas (sem químico).`
+          : `🐞 Controle biológico aplicado preventivamente.`
+        : nutriFlorada
+          ? `🌱 Adubação de florada aplicada — safra fortalecida!`
+          : `🌱 Aplicou ${INSUMOS[insumoId].nome} no talhão.`;
   return comMensagem(novoState, msg);
 }
 
@@ -854,7 +966,8 @@ function acaoVenderLote(state, { loteId }) {
   if (!lote) return state;
   // Lote H3 + H6: aplica multiplicador de mercado (com floor se coop)
   const precoComCert = precoComCertificacoes(lote.precoPorSaca, state.certificacoes);
-  const precoFinal = Math.round(precoComCert * mercadoEfetivo(state));
+  const fatorGestao = temPerk(state, "gestao") ? 1.05 : 1;
+  const precoFinal = Math.round(precoComCert * mercadoEfetivo(state) * fatorGestao);
   const valor = lote.sacas * precoFinal;
   // Lote G4: atualiza melhor lote + contagem
   const stats = state.stats || {};
@@ -1095,7 +1208,8 @@ function acaoInstalarIrrigacao(state, { talhaoId }) {
     return comMensagem(state, `❌ Talhão já é irrigado.`);
   }
   const custo = Math.round(
-    IRRIGACAO.custoBase + IRRIGACAO.custoPorHectare * talhao.hectares
+    (IRRIGACAO.custoBase + IRRIGACAO.custoPorHectare * talhao.hectares) *
+      (temPerk(state, "irrigacao") ? 0.8 : 1)
   );
   if (!podePagar(state.caixa, custo)) {
     return comMensagem(state, `❌ Caixa insuficiente pra irrigação (R$${custo.toLocaleString("pt-BR")}).`);
@@ -1110,22 +1224,24 @@ function acaoInstalarIrrigacao(state, { talhaoId }) {
 }
 
 function acaoAmostrar(state, { talhaoId }) {
-  if (!podePagar(state.caixa, CUSTO_AMOSTRAGEM)) {
-    return comMensagem(state, `❌ Caixa insuficiente pra amostragem (R$${CUSTO_AMOSTRAGEM}).`);
+  const custo = temPerk(state, "mip") ? 0 : CUSTO_AMOSTRAGEM;
+  if (!podePagar(state.caixa, custo)) {
+    return comMensagem(state, `❌ Caixa insuficiente pra amostragem (R$${custo}).`);
   }
   const talhao = state.talhoes.find((t) => t.id === talhaoId);
   if (!talhao) return state;
   const ativas = Object.entries(talhao.pragas || {});
   const novoState = {
     ...trocarTalhao(state, talhaoId, amostrarTalhao),
-    caixa: state.caixa - CUSTO_AMOSTRAGEM,
+    caixa: state.caixa - custo,
   };
+  const tag = custo === 0 ? "grátis · MIP" : `-R$${custo}`;
   if (ativas.length === 0) {
-    return comMensagem(novoState, `🔍 Amostragem: nenhuma praga detectada (-R$${CUSTO_AMOSTRAGEM}).`);
+    return comMensagem(novoState, `🔍 Amostragem: nenhuma praga detectada (${tag}).`);
   }
   return comMensagem(
     novoState,
-    `🔍 Amostragem revelou ${ativas.length} ${ativas.length === 1 ? "praga" : "pragas"} (-R$${CUSTO_AMOSTRAGEM}).`
+    `🔍 Amostragem revelou ${ativas.length} ${ativas.length === 1 ? "praga" : "pragas"} (${tag}).`
   );
 }
 
@@ -1157,15 +1273,16 @@ function acaoEsqueletar(state, { talhaoId }) {
       `❌ Talhão não pode ser esqueletado (precisa ≥${ESQUELETAMENTO.idadeMinima} anos, fora de recuperação).`
     );
   }
-  if (!podePagar(state.caixa, ESQUELETAMENTO.custo)) {
-    return comMensagem(state, `❌ Caixa insuficiente (R$${ESQUELETAMENTO.custo}).`);
+  const custo = Math.round(ESQUELETAMENTO.custo * (temPerk(state, "poda") ? 0.7 : 1));
+  if (!podePagar(state.caixa, custo)) {
+    return comMensagem(state, `❌ Caixa insuficiente (R$${custo}).`);
   }
   return comMensagem(
     {
       ...trocarTalhao(state, talhaoId, iniciarEsqueletamento),
-      caixa: state.caixa - ESQUELETAMENTO.custo,
+      caixa: state.caixa - custo,
     },
-    `✂️ Esqueletamento iniciado: -R$${ESQUELETAMENTO.custo}. Volta em ~1 ano.`
+    `✂️ Esqueletamento iniciado: -R$${custo}. Volta em ~1 ano.`
   );
 }
 
@@ -1178,28 +1295,48 @@ function acaoRecepar(state, { talhaoId }) {
       `❌ Talhão não pode ser recepado (precisa ≥${RECEPA.idadeMinima} anos, fora de recuperação).`
     );
   }
-  if (!podePagar(state.caixa, RECEPA.custo)) {
-    return comMensagem(state, `❌ Caixa insuficiente (R$${RECEPA.custo}).`);
+  const custo = Math.round(RECEPA.custo * (temPerk(state, "poda") ? 0.7 : 1));
+  if (!podePagar(state.caixa, custo)) {
+    return comMensagem(state, `❌ Caixa insuficiente (R$${custo}).`);
   }
   return comMensagem(
     {
       ...trocarTalhao(state, talhaoId, iniciarRecepa),
-      caixa: state.caixa - RECEPA.custo,
+      caixa: state.caixa - custo,
     },
-    `🪓 Recepa iniciada: -R$${RECEPA.custo}. Volta em ~2 anos.`
+    `🪓 Recepa iniciada: -R$${custo}. Volta em ~2 anos.`
   );
+}
+
+function acaoFazerCurso(state) {
+  const ater = state.ater;
+  if (!ater?.cursoOferecido) return state;
+  const c = cursoPorId(ater.cursoOferecido);
+  if (!c) return { ...state, ater: { ...ater, cursoOferecido: null } };
+  let novo = {
+    ...state,
+    perks: { ...(state.perks || {}), [c.id]: true },
+    ater: {
+      ...ater,
+      cursoOferecido: null,
+      cursosFeitos: { ...ater.cursosFeitos, [c.id]: true },
+    },
+  };
+  novo = comMensagem(novo, `🎓 Curso concluído: ${c.nome}! ${c.desc}`);
+  return ganharXp(novo, c.xp);
 }
 
 function acaoVenderTudo(state) {
   if (state.estoqueSacas.length === 0) return state;
   // Lote F + H3 + H6: prêmio das certs + multiplicador de mercado (com floor coop)
   const merc = mercadoEfetivo(state);
+  const fatorGestao = temPerk(state, "gestao") ? 1.05 : 1;
   const total = state.estoqueSacas.reduce(
     (acc, l) =>
       acc +
       l.sacas *
         Math.round(
-          precoComCertificacoes(l.precoPorSaca, state.certificacoes) * merc
+          precoComCertificacoes(l.precoPorSaca, state.certificacoes) * merc * fatorGestao
         ),
     0
   );
@@ -1289,6 +1426,8 @@ function reducerCore(state, action) {
       return acaoComprarEquipamento(state, action.payload);
     case "COMPRAR_PROPRIEDADE":
       return acaoComprarPropriedade(state, action.payload);
+    case "VENDER_TALHAO":
+      return acaoVenderTalhao(state, action.payload);
     case "PLANTAR":
       return acaoPlantar(state, action.payload);
     case "APLICAR_INSUMO":
@@ -1329,6 +1468,8 @@ function reducerCore(state, action) {
       return acaoFiliarCooperativa(state);
     case "ADERIR_CERTIFICACAO":
       return acaoAderirCertificacao(state, action.payload);
+    case "FAZER_CURSO":
+      return acaoFazerCurso(state);
     case "SET_VELOCIDADE":
       return state ? { ...state, velocidade: action.payload.dias } : state;
     case "REINICIAR_TUTORIAL":

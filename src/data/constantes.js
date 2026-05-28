@@ -218,6 +218,12 @@ export const CUSTO_MAO_OBRA_PANHA = {
   colhedora: 0,  // cobra só o custoOperacao da colhedora (fixo)
 };
 
+/* ---------- Venda de terra (revenda do talhão) ---------- */
+// Valor de referência por hectare conforme o terreno (R$).
+export const VALOR_HECTARE = { plano: 7000, montanhoso: 4500 };
+// Quem vende recebe abaixo do mercado (deságio).
+export const DEPRECIACAO_VENDA = 0.7;
+
 /* ---------- Caixa inicial por modo de partida ---------- */
 export const SAVE_KEY = "imperio-cafe-save-v1";
 

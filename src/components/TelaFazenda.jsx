@@ -15,6 +15,7 @@ import { climaDescreve } from "../logic/clima.js";
 import { resumoFazenda } from "../logic/resumoFazenda.js";
 import { dicasManejo } from "../logic/dicasManejo.js";
 import { missaoPorId, infoMissao } from "../data/missoes.js";
+import { cursoPorId } from "../data/ater.js";
 import { estaEmRecuperacao } from "../logic/talhao.js";
 import { UMIDADE_INICIAL, UMIDADE_PRONTA } from "../logic/pos_colheita.js";
 import { CUSTO_AMOSTRAGEM, ANOS_FORMACAO } from "../data/constantes.js";
@@ -43,6 +44,7 @@ export default function TelaFazenda({ setTela }) {
   const eventos = eventosCompat(state);
   const resumo = resumoFazenda(state);
   const dicas = dicasManejo(state);
+  const cursoAter = state.ater?.cursoOferecido ? cursoPorId(state.ater.cursoOferecido) : null;
   const talhaoModal = state.talhoes.find((t) => t.id === talhaoModalId) || null;
 
   // ---- Ordenação dos talhões ----
@@ -170,6 +172,21 @@ export default function TelaFazenda({ setTela }) {
                 </View>
               );
             })}
+          </View>
+        </Painel>
+      )}
+
+      {/* Visita da EMATER — curso de capacitação (ATER) */}
+      {cursoAter && (
+        <Painel icone="🧑‍🏫" titulo="Visita da EMATER">
+          <Text style={styles.aterNome}>
+            {cursoAter.icone} {cursoAter.nome}
+          </Text>
+          <Text style={styles.aterDesc}>{cursoAter.desc}</Text>
+          <View style={{ marginTop: 10 }}>
+            <Botao variante="sucesso" fullWidth onPress={() => dispatch({ type: "FAZER_CURSO" })}>
+              🎓 Fazer curso (grátis)
+            </Botao>
           </View>
         </Painel>
       )}
@@ -436,6 +453,10 @@ const styles = StyleSheet.create({
   toggleAtivo: { backgroundColor: tema.bg2, borderWidth: 1, borderColor: tema.dourado },
   toggleTxt: { color: tema.textoDim, fontSize: 12, fontWeight: "700" },
   toggleTxtAtivo: { color: tema.dourado },
+
+  /* ATER */
+  aterNome: { color: tema.texto, fontSize: 15, fontWeight: "800" },
+  aterDesc: { color: tema.textoDim, fontSize: 13, lineHeight: 18, marginTop: 2 },
 
   /* Missões / metas */
   missoesLista: { gap: 10 },

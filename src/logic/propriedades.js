@@ -10,8 +10,19 @@ import {
   ANOS_FORMACAO,
   SANIDADE_INICIAL,
   PES_POR_HECTARE,
+  VALOR_HECTARE,
+  DEPRECIACAO_VENDA,
 } from "../data/constantes.js";
 import { VARIEDADES } from "../data/cafe.js";
+
+// Valor de revenda de um talhão (deságio sobre o valor de mercado;
+// lavoura formada vale mais que terra nua).
+export function valorVendaTalhao(talhao) {
+  const porHa = VALOR_HECTARE[talhao.terreno] ?? VALOR_HECTARE.plano;
+  let fator = 1.0;
+  if (talhao.variedadeId) fator = talhao.idadeAnos >= ANOS_FORMACAO ? 1.6 : 1.15;
+  return Math.round((talhao.hectares || 0) * porHa * fator * DEPRECIACAO_VENDA);
+}
 
 export function buscarPropriedade(propId) {
   return PROPRIEDADES_VENDA.find((p) => p.id === propId);
@@ -28,6 +39,7 @@ export function comprar(propId) {
     return {
       preco: prop.preco,
       talhao: criarTalhao({
+        propId: prop.id,
         hectares: prop.hectares,
         terreno: prop.terreno,
         inclinacao,
@@ -43,6 +55,7 @@ export function comprar(propId) {
   return {
     preco: prop.preco,
     talhao: criarTalhao({
+      propId: prop.id,
       variedadeId: prop.variedade,
       hectares: prop.hectares,
       pes: Math.round(prop.hectares * densidade),

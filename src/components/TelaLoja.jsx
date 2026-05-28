@@ -68,6 +68,16 @@ export default function TelaLoja() {
 
   return (
     <View style={styles.container}>
+      {/* ---------- Festa do Café: desconto temporário ---------- */}
+      {state.festaAtiva?.desconto ? (
+        <View style={styles.festaBanner}>
+          <Text style={styles.festaBannerTxt}>
+            {state.festaAtiva.icone} {state.festaAtiva.nome}: −
+            {Math.round(state.festaAtiva.desconto * 100)}% em insumos · {state.festaAtiva.diasRestantes} dias
+          </Text>
+        </View>
+      ) : null}
+
       {/* ---------- 1. COOPERATIVA ---------- */}
       {filiado ? (
         <View style={[styles.painel, styles.coopBanner]}>
@@ -125,7 +135,11 @@ export default function TelaLoja() {
           return (
             <View key={id} style={[styles.tile, semGrana && styles.tileDim]}>
               <View style={styles.iconeImg}>
-                <Image source={IMG_INSUMO[id]} style={styles.img} resizeMode="cover" />
+                {IMG_INSUMO[id] ? (
+                  <Image source={IMG_INSUMO[id]} style={styles.img} resizeMode="cover" />
+                ) : (
+                  <Text style={styles.emojiGrande}>{ins.icone}</Text>
+                )}
               </View>
               <Text style={styles.tileNome}>{ins.nome}</Text>
               <Text style={styles.tileDesc} numberOfLines={2}>
@@ -390,6 +404,15 @@ const MB = tema.madeiraBase;
 const styles = StyleSheet.create({
   container: { gap: 16 },
 
+  festaBanner: {
+    backgroundColor: "#fff3d2",
+    borderWidth: 2,
+    borderColor: tema.gold,
+    borderRadius: 12,
+    padding: 12,
+  },
+  festaBannerTxt: { color: tema.douradoEscuro, fontSize: 13, fontWeight: "800" },
+
   h3: {
     color: M,
     fontSize: 18,
@@ -463,6 +486,8 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: "#e3d9c1",
     overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
   },
   iconeEmoji: {
     width: 64,

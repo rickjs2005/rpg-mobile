@@ -56,12 +56,25 @@ export const NIVEL_VARIEDADE = {
   bourbon_vermelho: 4,
   conilon: 5,
 };
-export const NIVEL_EQUIPAMENTO = { trator: 2, secador: 2, drone: 3, colhedora: 4 };
+export const NIVEL_EQUIPAMENTO = {
+  derricadeira: 2,
+  trator: 2,
+  secador: 2,
+  despolpadora: 3,
+  drone: 3,
+  colhedora: 4,
+  classificadora: 4,
+};
 export const NIVEL_PROPRIEDADE = {
   sitio_baixada: 2,
   ladeira_serra: 2,
-  fazenda_velha: 4,
+  ribeirao_fundo: 3,
+  alto_da_serra: 3,
   morro_arabica: 4,
+  fazenda_velha: 4,
+  varzea_grande: 4,
+  fazenda_bourbon: 5,
+  planalto_cerrado: 5,
 };
 
 export function nivelRequerido(mapa, id) {

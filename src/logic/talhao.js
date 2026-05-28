@@ -76,6 +76,8 @@ export function criarTalhao(opts) {
     sombreado: opts.sombreado || false,
     // Mato/capina: 0 (limpo) a 1 (tomado). Cresce com a chuva.
     mato: opts.mato || 0,
+    // Origem (se veio de uma propriedade comprada) — pra revenda devolver ao catálogo.
+    propId: opts.propId || null,
   };
 }
 
@@ -115,25 +117,36 @@ export function envelhecerTalhao(talhao, anos) {
   };
 }
 
-// Aplica insumo. Calcário tem efeito ATRASADO (vai pra fila),
-// adubo e defensivo são imediatos.
+// Ganho imediato de sanidade por insumo (adubos e defensivos).
+const SANIDADE_IMEDIATA = {
+  adubo: 0.25,
+  defensivo: 0.1,
+  adubo_foliar: 0.15,
+  esterco: 0.2,
+  bio_controle: 0.08,
+};
+// Efeitos de solo com ação ATRASADA (entram numa fila de timers).
+const EFEITO_PENDENTE = {
+  calcario: { dias: DIAS_EFEITO_CALCARIO, ganho: 0.18 },
+  gesso: { dias: 60, ganho: 0.12 },
+};
+
+// Aplica insumo. Calcário/gesso têm efeito atrasado (fila); os demais
+// (adubos, foliar, esterco, defensivo, bio) são imediatos.
 export function aplicarInsumo(talhao, insumoId) {
   if (!talhao.variedadeId) return talhao;
-  if (insumoId === "calcario") {
+  const pend = EFEITO_PENDENTE[insumoId];
+  if (pend) {
     return {
       ...talhao,
       efeitosPendentes: [
         ...(talhao.efeitosPendentes || []),
-        {
-          tipo: "calcario",
-          diasRestantes: DIAS_EFEITO_CALCARIO,
-          ganhoSanidade: 0.18,
-        },
+        { tipo: insumoId, diasRestantes: pend.dias, ganhoSanidade: pend.ganho },
       ],
     };
   }
-  const ganhoImediato = { adubo: 0.25, defensivo: 0.1 }[insumoId] || 0;
-  return { ...talhao, sanidade: clamp(talhao.sanidade + ganhoImediato) };
+  const ganho = SANIDADE_IMEDIATA[insumoId] || 0;
+  return { ...talhao, sanidade: clamp(talhao.sanidade + ganho) };
 }
 
 // Avança 1 dia nos efeitos pendentes. Quando diasRestantes chega a 0,
@@ -150,8 +163,9 @@ export function avancarEfeitosPendentesUmDia(talhao) {
     const dias = e.diasRestantes - 1;
     if (dias <= 0) {
       sanidade = clamp(sanidade + (e.ganhoSanidade || 0));
+      const nome = e.tipo === "gesso" ? "🧱 Gesso" : "🪨 Calcário";
       eventos.push(
-        `🪨 Calcário fez efeito num talhão (+${Math.round((e.ganhoSanidade || 0) * 100)}% sanidade).`
+        `${nome} fez efeito num talhão (+${Math.round((e.ganhoSanidade || 0) * 100)}% sanidade).`
       );
     } else {
       pendentes.push({ ...e, diasRestantes: dias });
