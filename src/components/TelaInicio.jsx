@@ -343,6 +343,13 @@ export default function TelaInicio({ slots, onJogarSlot, onNovoSlot, onApagarSlo
             pointerEvents="none"
             style={[StyleSheet.absoluteFill, styles.neblina, { opacity: neblinaOpacity }]}
           />
+          <View style={styles.logoBadge}>
+            <Image
+              source={require("../../assets/icon.png")}
+              style={styles.logoImg}
+              resizeMode="cover"
+            />
+          </View>
           <View style={styles.tituloCard}>
             <Text style={styles.titulo}>Império{"\n"}do Café</Text>
             <Text style={styles.subtitulo}>Zona da Mata</Text>
@@ -922,6 +929,24 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.28)",
   },
+  logoBadge: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    overflow: "hidden",
+    borderWidth: 4,
+    borderColor: C.gold,
+    backgroundColor: C.bg,
+    marginBottom: 14,
+    // leve sombra/realce
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 6,
+  },
+  logoImg: { width: "100%", height: "100%" },
+
   tituloCard: {
     backgroundColor: "rgba(130,83,61,0.85)",
     borderRadius: 16,

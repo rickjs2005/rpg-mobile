@@ -1,20 +1,25 @@
 {
   "expo": {
-    "name": "rpg-mobile",
+    "name": "Império do Café",
     "slug": "rpg-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#f3ecd0"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rickjs.imperiodocafe"
     },
     "android": {
+      "package": "com.rickjs.imperiodocafe",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#f3ecd0",
+        "foregroundImage": "./assets/android-icon-foreground.png"
       }
     },
     "web": {
