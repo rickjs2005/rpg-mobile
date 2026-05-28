@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import {
   View,
   Text,
+  Image,
   ScrollView,
   ActivityIndicator,
   Alert,
@@ -208,6 +209,8 @@ function Boot() {
   if (carregando) {
     return (
       <View style={shellStyles.splash}>
+        <Image source={require("./assets/icon.png")} style={shellStyles.splashLogo} />
+        <Text style={shellStyles.splashTitulo}>Império do Café</Text>
         <ActivityIndicator size="large" color={tema.dourado} />
         <Text style={shellStyles.splashTxt}>Carregando…</Text>
       </View>
@@ -263,6 +266,18 @@ const shellStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
+  },
+  splashLogo: {
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    borderWidth: 4,
+    borderColor: tema.gold,
+  },
+  splashTitulo: {
+    color: tema.madeira,
+    fontSize: 22,
+    fontWeight: "800",
   },
   splashTxt: {
     color: tema.dourado,
