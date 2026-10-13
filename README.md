@@ -1,250 +1,145 @@
-# ☕ Império do Café — Zona da Mata
+# Império do Café — Zona da Mata
 
-Simulador de cafeicultura mineira no estilo "Brasfoot do café": gestão por menus e telas, sem gráficos 3D. Do aperto de uma rocinha pequena ao império de fazendas certificadas.
+**English** · [Português](README.pt-BR.md)
 
-Construído pra **iPhone / Android** com React Native + Expo. Save no AsyncStorage, jogo 100% offline.
+A mobile coffee-farming simulator set in Minas Gerais, Brazil, in the spirit of a "Brasfoot for coffee": menu- and screen-driven management, no 3D graphics. Grow from a small starter plot to an empire of certified farms. The game itself is in Brazilian Portuguese.
 
----
+> **Type:** personal project — mobile game in development (not yet published on app stores). Built with React Native + Expo; local save via AsyncStorage, fully offline.
 
-## 🎯 O que é
+<p align="center">
+  <img src="docs/screenshots/imperio-cafe.jpg" alt="Império do Café farm screen: harvest timeline, inventory and coffee plot" width="268">
+</p>
 
-Você é um cafeicultor da Zona da Mata de Minas Gerais. Começa com 1 talhão pequeno (rocinha pronta) ou terra nua, e precisa transformar isso numa fazenda lucrativa ao longo de muitas safras.
+## What it is
 
-**Loop central**:
-plantar → conduzir → colher → processar → vender na corretora → reinvestir → expandir.
+You are a coffee grower in the Zona da Mata region of Minas Gerais. You start with one small plot (ready-to-harvest "rocinha") or bare land and have to turn it into a profitable farm over many harvests.
 
-Fidelidade temporal: lavoura nova leva **~3 anos** pra formar e produzir.
+**Core loop:** plant → manage → harvest → process → sell → reinvest → expand. A new plantation takes about 3 years to mature and produce.
 
----
+## Implemented systems
 
-## 🧠 22 sistemas implementados
+### Agronomic cycle
+- **11 varieties** with their own traits (Catuaí, Bourbon Amarelo/Vermelho, Topázio, Acaiá, Paraíso MGS 2, Arara, Catucaí, Conilon...)
+- **3 planting densities** (traditional, dense, super-dense) and full sun vs. shaded
+- **Flowering after dry spells**, **bean filling** driven by Jan–Mar rainfall, **biennial bearing** and an age/productivity curve
 
-### Ciclo agronômico
-- **11 variedades** com traços próprios (Catuaí, Bourbon Amarelo/Vermelho, Topázio, Acaiá, Paraíso MGS 2, Arara, Catucaí, Conilon...)
-- **3 densidades de plantio** (tradicional, adensado, super-adensado) com trade-offs reais
-- **Sombreamento** (sol pleno vs sombreado) — −35% produção, +bebida, −pragas
-- **Florada-veranico**: precisa de 10 dias secos + chuva ≥5mm em set-out
-- **Granação** dependente de chuva acumulada em jan-mar
-- **Bienalidade** alta/baixa modulada por variedade
-- **Curva idade-produtiva**: pico 4-6, estável 7-15, declínio depois
+### Crop management
+- Fertilizer, lime (delayed effect) and pesticide
+- Skeleton pruning and stumping; per-plot irrigation
+- Monthly workers + foreman
 
-### Manejo
-- **Adubo / Calcário / Defensivo** (calcário com efeito atrasado 90d)
-- **Esqueletamento** (poda média, perde 1 safra)
-- **Recepa** (poda drástica, renova lavoura)
-- **Irrigação** por talhão (zera veranico)
-- **Mensalistas + Encarregado** (cobertura proporcional + bonus na panha)
+### Pests and diseases
+- **6 pests/diseases** with seasonality (leaf miner, berry borer, rust, leafhopper, cercospora, phoma)
+- Sampling reveals the active pest; resistant varieties reduce rust
 
-### Pragas e doenças
-- **6 pragas** com sazonalidade: bicho-mineiro, broca, ferrugem, cigarrinha, cercospora, mancha-de-phoma
-- **Amostragem** (R$50) revela qual praga está ativa
-- Variedade resistente (Paraíso, Arara) reduz spawn de ferrugem
-- Broca gera defeitos brocados no lote final
+### Post-harvest
+- **3 methods**: Natural, Pulped Natural (CD) and Washed; a siphon washer separates ripe cherries from floaters
+- **Day-by-day drying** with seeded weather; a mechanical dryer ignores rain
 
-### Pós-colheita
-- **3 métodos**: Natural / Cereja Descascado (CD) / Lavado
-- **Lavador-sifão** separa cereja (denso) de boia (verde+seco) em CD/Lavado
-- **Secagem dia-a-dia** com clima sorteado por seed (umidade 60% → 12%)
-- **Secador mecânico** ignora chuva
+### Market and economy
+- **Tipo BRASIL × screen size × SCA score** grading; micro-lots when SCA ≥ 85
+- Daily market index and **7 macro events**
+- **Specialty coffee auction**, **3 certifications** (Rainforest, Fair Trade, Organic), cooperative and Funcafé financing
+- Limited-capacity storage (50/150/500 bags), **7 pieces of equipment** and **10 properties** for sale
 
-### Mercado
-- **Classificação multi-dimensional**: Tipo BRASIL (2-8) × Peneira (12-19) × SCA (60-95)
-- **Microlote** automático quando SCA ≥ 85 (preço 2.5x a 5x)
-- **Mercado dinâmico**: índice da bolsa oscila 0.65 a 1.45x diariamente
-- **7 eventos macro**: geada concorrente, crise Vietnã, supersafra Colômbia, recessão EUA...
-- **3 certificações** (Rainforest, Fair Trade, Orgânico) com bônus cumulativos +10/+30/+35%
-- **Cooperativa Cocatrel**: −15% insumos + piso 95% no preço de venda
-- **Financiamento Funcafé**: empréstimo subsidiado, 12 parcelas, 10% juros total
+### Extreme events
+- Black frost, hail and severe drought
 
-### Infraestrutura
-- **Tulha** com capacidade limitada (50/150/500 sacas) — excedente vai pra venda forçada
-- **4 equipamentos**: trator, drone DJI Agras, secador mecânico, colhedora
-- **Regra dos 15% de inclinação**: trator/colhedora perdem força em montanhoso, drone brilha
-- **4 propriedades à venda** (nua ou pronta)
+### Progression and UX
+- **7-step tutorial**, **glossary** with 49 terms, dashboard with revenue × expenses
+- **23 milestones** in 9 categories, **12 missions**, **5 levels** with unlocks, regional festivals and extension (ATER) courses
+- HUD with alerts and next event, 12-month timeline, filterable event history
+- Menu music with music/sound-effect toggles under **Configurações** (Settings)
 
-### Eventos climáticos extremos
-- **Geada negra** (jun-jul): −50% sanidade em TODOS os talhões + quebra florada
-- **Granizo** (out-fev): −30% em 1 talhão random
-- **Seca crítica**: veranico > 25 dias = dano gradual
-
----
-
-## 🎨 UX
-
-- **Tutorial guiado** em 7 passos com triggers automáticos (avança quando jogador executa a ação)
-- **Glossário** com 40+ termos técnicos (SCA, Tipo BRASIL, veranico, recepa...) em modal full-screen
-- **Dashboard 📊** com lucro YTD, melhor lote, gráfico anual de receita × despesa
-- **HUD enriquecido** com próximo evento, saúde da fazenda, alertas críticos
-- **Timeline visual** dos 12 meses + marcos do ano agrícola
-- **23 marcos/achievements** desbloqueáveis em 9 categorias
-- **Histórico persistente** de 500 eventos com filtros por categoria
-
----
-
-## 🛠️ Stack
+## Stack
 
 | | |
 |---|---|
-| Framework | **Expo SDK 54** |
-| UI | **React Native 0.81** |
-| Estado | **useReducer + Context** (sem Redux/Zustand) |
-| Persistência | **AsyncStorage** |
-| RNG | **mulberry32** seedável |
-| Linguagem | **JavaScript** (sem TypeScript por enquanto) |
-| Plataforma alvo | **iOS + Android** |
+| Framework | Expo SDK 54 (`expo ~54.0.0`) |
+| UI | React Native 0.81.5 / React 19.1.0 |
+| State | `useReducer` + Context |
+| Persistence | `@react-native-async-storage/async-storage` |
+| Audio | `expo-audio` |
+| RNG | seedable mulberry32 |
+| Language | JavaScript |
+| Platforms | iOS + Android (via Expo Go or an EAS build) |
 
-**Sem dependências de UI externas** — tudo em RN puro (Pressable, View, Text, StyleSheet).
+No external UI libraries — everything is built from React Native components.
 
----
+## Getting started
 
-## 🚀 Como rodar
-
-### Pré-requisitos
-- Node.js 18+
-- Expo Go instalado no iPhone/Android (App Store / Google Play)
-- PC e celular na mesma rede WiFi
+### Prerequisites
+- Node.js **20.19.4 or later** (required by React Native 0.81 / Metro)
+- Expo Go on your phone (iOS/Android), with computer and phone on the same network
 
 ### Setup
 ```bash
 git clone https://github.com/rickjs2005/rpg-mobile
 cd rpg-mobile
-npm install
+npm ci
 npx expo start --lan
 ```
 
-### Abrir no celular
-1. Abre o **Expo Go** no celular
-2. Escaneia o QR code que aparece no terminal (Câmera nativa do iOS funciona)
-3. Bundle inicia (~30s na primeira vez)
+Scan the QR code with Expo Go (on iOS, the native camera works).
 
----
+No environment variables are needed.
 
-## 📁 Estrutura
+### Available scripts
+| Command | What it does |
+|---|---|
+| `npm start` | `expo start` |
+| `npm run android` | `expo start --android` |
+| `npm run ios` | `expo start --ios` |
+| `npm run web` | `expo start --web` (requires installing `react-dom` and `react-native-web`, which are not in the project) |
+
+To check the JS bundle without a native build: `npx expo export --platform android`.
+
+Store builds use EAS (`eas.json` with `development`, `preview` and `production` profiles); the launch checklist (in Portuguese) is in [docs/LANCAMENTO.md](docs/LANCAMENTO.md).
+
+## Project structure
 
 ```
+App.js              shell: SafeArea + HUD + screens + bottom menu
 src/
-├── data/           → dados puros (constantes, catálogos, sem lógica)
-│   ├── cafe.js              variedades, métodos pós, tabela bebida
-│   ├── economia.js          insumos, equipamentos, propriedades, certs, equipe, tulhas
-│   ├── constantes.js        números de balanceamento centralizados
-│   ├── clima.js             perfis mensais de chuva/sol/geada
-│   ├── pragas.js            6 pragas com sazonalidade
-│   ├── eventos_extremos.js  geada, granizo
-│   ├── mercado.js           parâmetros da bolsa + eventos macro
-│   ├── marcos.js            23 achievements
-│   ├── glossario.js         40+ termos
-│   └── tutorial.js          7 passos do onboarding
-│
-├── logic/          → funções puras, JS, testáveis sem React
-│   ├── rng.js               mulberry32 seedável
-│   ├── tempo.js             calendário + passo híbrido (semana / 1 dia em secagem)
-│   ├── clima.js             sorteio diário + mm de chuva
-│   ├── ciclo.js             florada-veranico, granação, reset anual
-│   ├── talhao.js            criar, plantar, formar, envelhecer, podas
-│   ├── maturacao.js         perfil maduro/verde/seco por mês
-│   ├── panha.js             colheita com seletividade
-│   ├── pos_colheita.js      secagem dia-a-dia + lavador-sifão
-│   ├── bebida.js            classificação Tipo + Peneira + SCA
-│   ├── economia.js          preços base
-│   ├── equipamentos.js      modificadores por terreno
-│   ├── propriedades.js      compra de terra
-│   ├── pragas.js            spawn, dano, defensivo
-│   ├── eventos_extremos.js  sorteio + aplicação
-│   ├── certificacoes.js     adesão, transição, prêmio
-│   ├── equipe.js            cobertura, folha, manutenção
-│   ├── mercado.js           atualização diária do índice
-│   ├── financiamento.js     Funcafé
-│   ├── alertas.js           saúde, próximo evento (consumido pelo HUD)
-│   └── save.js              AsyncStorage isolado
-│
-├── hooks/          → ponte React (estado + side effects)
-│   ├── reducer.js           reducer puro, 30+ ações, tracking auto
-│   ├── useJogo.jsx          Context + Provider + useReducer
-│   └── useSave.js           load/save async
-│
-├── components/     → UI (Pressable, View, Text)
-│   ├── Botao.jsx
-│   ├── HUD.jsx              caixa, data, fase, alertas, próximo evento
-│   ├── Menu.jsx             tab bar bottom 5 abas
-│   ├── BalaoTutorial.jsx
-│   ├── Glossario.jsx        modal full-screen
-│   ├── Dashboard.jsx        modal full-screen
-│   ├── HistoricoEventos.jsx modal
-│   ├── Timeline.jsx         strip horizontal dos 12 meses
-│   ├── TelaInicio.jsx       escolha de modo (rocinha pronta / terra nua)
-│   ├── TelaFazenda.jsx
-│   ├── TelaLoja.jsx
-│   ├── TelaPropriedades.jsx
-│   ├── TelaMercado.jsx
-│   ├── TelaSafra.jsx
-│   ├── CardTalhao.jsx       picker densidade + sol/sombra + ações contextuais
-│   ├── CardEquipamento.jsx
-│   ├── CardPropriedade.jsx
-│   └── CardLote.jsx
-│
-├── styles/
-│   └── tema.js              paleta + constantes visuais (cores, raios, fontes)
-│
-└── App.js          shell: SafeArea + HUD + ScrollView + Menu + 2 FABs
+├── data/           pure data (varieties, economy, weather, pests, market, milestones, glossary, tutorial...)
+├── logic/          pure simulation functions (no React)
+├── hooks/          reducer, Context (useJogo) and save
+├── components/     screens and cards (Pressable, View, Text)
+├── audio/          audio engine and sound registry
+├── state/          global statistics
+└── styles/tema.js  palette and visual constants
+assets/             icons, splash, illustrations and menu music
+docs/               game documentation, launch checklist and visual references (ref-*.html/png), in Portuguese
 ```
 
-**Regra arquitetural central**: nenhum componente tem lógica de simulação; nenhum módulo de `logic/` importa React. A lógica de jogo é JavaScript puro e testável.
+Core rule: no component contains simulation logic, and no `logic/` module imports React.
 
----
+## Save data
 
-## 🎮 Como jogar (5 min)
+Saved automatically to the device's AsyncStorage, with multiple farm slots (keys `imperio-cafe-save-v1-slot{n}`; an old single-key save is migrated to slot 0). To start over, delete the farm on the start screen.
 
-1. **Tela de início** → escolhe "Rocinha pronta" (R$5.000 + Catuaí formado)
-2. **Tutorial guiado** te leva pelos primeiros passos
-3. **Fazenda** → vê o talhão, inventário, eventos, timeline
-4. **HUD topo**: caixa, data, próximo evento. Toca em "▶ Avançar 1 semana"
-5. Quando chegar em **maio-agosto** + lavoura formada + florada OK no ciclo anterior: **colhe**
-6. **Safra** → escolhe método pós (Natural / CD / Lavado) — CD/Lavado separa cereja de boia
-7. **Avançar 1 dia × N** durante secagem (acompanha umidade 60% → 12%)
-8. Lote vai pro **estoque** com classificação Tipo + Peneira + SCA
-9. **Mercado** → aba Commodity ou ⭐ Microlote, vende quando índice está alto
-10. **Loja** → adubo, equipamentos, mensalistas, Funcafé, certificações
-11. **Terras** → expande comprando propriedades
-12. **📊 Painel** (FAB inferior) → veja progresso, marcos, gráfico anual
-13. **📖 Glossário** (FAB inferior) → consulte termos técnicos
+## Limitations
 
----
+- No automated tests, linting or type checking are configured.
+- Not yet published on app stores; launch to-dos are in [docs/LANCAMENTO.md](docs/LANCAMENTO.md).
+- Most sound effects do not exist yet (the engine skips missing sounds); only the menu music is included.
+- The economy balance is still being tuned.
 
-## 💾 Save
+## Credits and media
 
-Salvamento automático no `AsyncStorage` do dispositivo, chave `imperio-cafe-save-v1`. Fechou o app → reabriu → continua de onde parou.
+- **Menu music** (`assets/audio/menu.mp3`): "Echoes Beyond Horizons" from StockTune. The license terms still need to be confirmed by the author (see [assets/audio/README.md](assets/audio/README.md)).
+- **Logo, mascot and illustrations** in `assets/`: AI-generated according to the launch checklist; commercial-use rights still need to be confirmed.
+- Real names (Cocatrel, Funcafé, DJI Agras, Rainforest Alliance, Fair Trade, Cup of Excellence, etc.) appear only as thematic references; the game is not affiliated with these companies or institutions.
+- Inspirations: Brasfoot, Stardew Valley, Farming Simulator and real coffee farming in the Zona da Mata.
 
-Pra apagar e começar nova partida: botão "🗑️ Apagar save" no fim de qualquer tela.
+## Contributing
 
----
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## 📚 Inspirações
+## Security
 
-- **Brasfoot** (jogo de manager de futebol brasileiro): UX por menus, sem 3D
-- **Stardew Valley**: comunicar visualmente o estágio sem palavras
-- **Farming Simulator**: profundidade de sistemas agrícolas
-- **Cafeicultura real da Zona da Mata** (Embrapa, Procafé, Cooxupé, Cocatrel)
+See [SECURITY.md](SECURITY.md).
 
----
+## License
 
-## 🛣️ Roadmap futuro (ideias)
-
-- [ ] Análise de solo (decisão informada de calagem)
-- [ ] Múltiplas cooperativas (Cocatrel vs Cooxupé com vantagens diferentes)
-- [ ] Concursos de microlote (vender em leilão com preço explosivo)
-- [ ] Multiplayer / ranking (save atualmente é isolado pra preparar isso)
-- [ ] Build APK Android publicável
-- [ ] Sons + animações (polish)
-- [ ] Testes unitários nos módulos de `logic/`
-
----
-
-## 🤝 Contribuições
-
-Issues e PRs são bem-vindos. O código é deliberadamente simples (sem TypeScript, sem state library, sem chart lib) pra facilitar entrada de novos contribuidores.
-
----
-
-## 📜 Licença
-
-Por definir.
+The repository contains a [LICENSE](LICENSE) file with the MIT License text; its copyright line (650 Industries, Inc., aka Expo) comes from the Expo template. Third-party media listed under "Credits and media" follow the terms of their respective sources.
